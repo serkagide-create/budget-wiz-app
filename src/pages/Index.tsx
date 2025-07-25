@@ -45,6 +45,7 @@ interface Debt {
   description: string;
   totalAmount: number;
   dueDate: string;
+  installmentCount: number;
   payments: Payment[];
 }
 
@@ -135,7 +136,7 @@ const BudgetApp = () => {
 
   // Form States
   const [incomeForm, setIncomeForm] = useState({ description: '', amount: '' });
-  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '' });
+  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '' });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
     targetAmount: '', 
@@ -214,8 +215,14 @@ const BudgetApp = () => {
 
   // Debt Functions
   const addDebt = () => {
-    if (!debtForm.description.trim() || !debtForm.amount || !debtForm.dueDate) {
+    if (!debtForm.description.trim() || !debtForm.amount || !debtForm.dueDate || !debtForm.installmentCount) {
       toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+
+    const installmentCount = parseInt(debtForm.installmentCount);
+    if (installmentCount <= 0) {
+      toast({ title: "Hata", description: "Taksit sayısı 0'dan büyük olmalı", variant: "destructive" });
       return;
     }
 
@@ -224,12 +231,58 @@ const BudgetApp = () => {
       description: debtForm.description.trim(),
       totalAmount: parseFloat(debtForm.amount),
       dueDate: debtForm.dueDate,
+      installmentCount: installmentCount,
       payments: []
     };
 
     setDebts(prev => [newDebt, ...prev]);
-    setDebtForm({ description: '', amount: '', dueDate: '' });
-    toast({ title: "Başarılı", description: "Borç eklendi" });
+    
+    // Otomatik taksit dağıtımı
+    autoDistributeInstallments(newDebt);
+    
+    setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '' });
+    toast({ title: "Başarılı", description: "Borç eklendi ve taksitler dağıtıldı" });
+  };
+
+  // Otomatik taksit dağıtımı
+  const autoDistributeInstallments = (debt: Debt) => {
+    const installmentAmount = Math.floor(debt.totalAmount / debt.installmentCount);
+    const remainingAmount = debt.totalAmount - (installmentAmount * debt.installmentCount);
+    
+    const payments: Payment[] = [];
+    
+    for (let i = 0; i < debt.installmentCount; i++) {
+      let amount = installmentAmount;
+      // Son taksitte kalan tutarı ekle
+      if (i === debt.installmentCount - 1) {
+        amount += remainingAmount;
+      }
+      
+      if (amount > availableDebtFund) {
+        toast({ 
+          title: "Uyarı", 
+          description: `Taksit ${i + 1} için borç fonu yetersiz`, 
+          variant: "destructive" 
+        });
+        break;
+      }
+      
+      const payment: Payment = {
+        id: `${Date.now()}-${i}`,
+        amount: amount,
+        date: new Date().toISOString()
+      };
+      
+      payments.push(payment);
+    }
+    
+    if (payments.length > 0) {
+      setDebts(prev => prev.map(d => 
+        d.id === debt.id 
+          ? { ...d, payments: payments }
+          : d
+      ));
+    }
   };
 
   const addPayment = (debtId: string) => {
@@ -579,8 +632,19 @@ const BudgetApp = () => {
               onChange={(e) => setDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
             />
           </div>
+          <div>
+            <Label htmlFor="debt-installmentCount">Taksit Sayısı</Label>
+            <Input
+              id="debt-installmentCount"
+              type="number"
+              placeholder="1"
+              min="1"
+              value={debtForm.installmentCount}
+              onChange={(e) => setDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
+            />
+          </div>
           <Button onClick={addDebt} className="w-full">
-            Borç Ekle
+            Borç Ekle (Otomatik Taksitlendir)
           </Button>
         </CardContent>
       </Card>
@@ -614,7 +678,7 @@ const BudgetApp = () => {
                   <div className="flex-1">
                     <CardTitle className="text-foreground">{debt.description}</CardTitle>
                     <div className="text-sm text-muted-foreground mt-1">
-                      Son Ödeme: {formatDate(debt.dueDate)}
+                      Son Ödeme: {formatDate(debt.dueDate)} • {debt.installmentCount} Taksit
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -670,14 +734,14 @@ const BudgetApp = () => {
                   </div>
                 )}
 
-                {/* Payment History */}
+                 {/* Payment History */}
                 {debt.payments.length > 0 && (
                   <div className="space-y-2">
-                    <div className="text-sm font-medium">Ödeme Geçmişi</div>
-                    {debt.payments.map((payment) => (
+                    <div className="text-sm font-medium">Taksit Listesi ({debt.payments.length}/{debt.installmentCount})</div>
+                    {debt.payments.map((payment, index) => (
                       <div key={payment.id} className="flex justify-between items-center p-2 bg-secondary/30 rounded">
                         <div className="text-sm">
-                          {formatCurrency(payment.amount)} - {formatDate(payment.date)}
+                          Taksit {index + 1}: {formatCurrency(payment.amount)} - {formatDate(payment.date)}
                         </div>
                         <Button
                           variant="ghost"
@@ -714,7 +778,7 @@ const BudgetApp = () => {
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <Target className="w-5 h-5" />
-            Yeni Hedef Ekle
+            Yeni Birikim Hedefi Ekle
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -762,7 +826,7 @@ const BudgetApp = () => {
             />
           </div>
           <Button onClick={addSavingGoal} className="w-full">
-            Hedef Ekle
+            Birikim Hedefi Ekle
           </Button>
         </CardContent>
       </Card>
@@ -952,7 +1016,7 @@ const BudgetApp = () => {
             <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Ana Sayfa</TabsTrigger>
             <TabsTrigger value="incomes" className="text-xs sm:text-sm">Gelirler</TabsTrigger>
             <TabsTrigger value="debts" className="text-xs sm:text-sm">Borçlar</TabsTrigger>
-            <TabsTrigger value="goals" className="text-xs sm:text-sm">Hedefler</TabsTrigger>
+            <TabsTrigger value="goals" className="text-xs sm:text-sm">Birikimler</TabsTrigger>
             <TabsTrigger value="settings" className="text-xs sm:text-sm">Ayarlar</TabsTrigger>
           </TabsList>
 
