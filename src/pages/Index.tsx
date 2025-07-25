@@ -379,560 +379,452 @@ const BudgetApp = () => {
 
   // Render Functions
   const renderDashboard = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-income border-income/20 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-income-foreground flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Toplam Gelir
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-income-foreground mb-2">
-              {formatCurrency(totalIncome)}
-            </div>
-            <div className="text-sm text-income-foreground/80">
-              {incomes.length} gelir kaydı
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card className="bg-gradient-income border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-income-foreground/80">Toplam Gelir</p>
+                <p className="text-xl font-bold text-income-foreground">
+                  {formatCurrency(totalIncome)}
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-income-foreground/60" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-expense border-expense/20 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-expense-foreground flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Borç Fonu
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-expense-foreground mb-2">
-              {formatCurrency(availableDebtFund)}
-            </div>
-            <div className="text-sm text-expense-foreground/80">
-              %{settings.debtPercentage} • {formatCurrency(debtFund)} toplam
+        <Card className="bg-gradient-expense border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-expense-foreground/80">Borç Fonu (%{settings.debtPercentage})</p>
+                <p className="text-xl font-bold text-expense-foreground">
+                  {formatCurrency(availableDebtFund)}
+                </p>
+              </div>
+              <Target className="w-8 h-8 text-expense-foreground/60" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-savings border-savings/20 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-savings-foreground flex items-center gap-2">
-              <Wallet className="w-5 h-5" />
-              Birikim Fonu
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-savings-foreground mb-2">
-              {formatCurrency(availableSavingsFund)}
-            </div>
-            <div className="text-sm text-savings-foreground/80">
-              %{settings.savingsPercentage} • {formatCurrency(savingsFund)} toplam
+        <Card className="bg-gradient-savings border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-savings-foreground/80">Birikim Fonu (%{settings.savingsPercentage})</p>
+                <p className="text-xl font-bold text-savings-foreground">
+                  {formatCurrency(availableSavingsFund)}
+                </p>
+              </div>
+              <Wallet className="w-8 h-8 text-savings-foreground/60" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-gradient-card shadow-card">
-          <CardHeader>
-            <CardTitle className="text-foreground">Borç Durumu</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {debts.length === 0 ? (
-              <p className="text-muted-foreground">Henüz borç eklenmemiş</p>
-            ) : (
-              debts.slice(0, 3).map((debt) => {
-                const totalPaid = debt.payments.reduce((sum, p) => sum + p.amount, 0);
-                const progress = (totalPaid / debt.totalAmount) * 100;
-                const daysLeft = getDaysUntilDue(debt.dueDate);
-                
-                return (
-                  <div key={debt.id} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium truncate">{debt.description}</span>
-                      {daysLeft <= 3 && daysLeft >= 0 && (
-                        <Badge variant={daysLeft === 0 ? "destructive" : "secondary"} className="text-xs">
-                          {daysLeft === 0 ? "Bugün" : `${daysLeft} gün`}
-                        </Badge>
-                      )}
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                    <div className="text-xs text-muted-foreground">
-                      {formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button 
+          onClick={() => setActiveTab('incomes')} 
+          className="h-16 text-left justify-start"
+          variant="outline"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-income/10 p-2 rounded-lg">
+              <PlusCircle className="w-5 h-5 text-income" />
+            </div>
+            <div>
+              <p className="font-medium">Gelir Ekle</p>
+              <p className="text-sm text-muted-foreground">{incomes.length} kayıt</p>
+            </div>
+          </div>
+        </Button>
 
-        <Card className="bg-gradient-card shadow-card">
-          <CardHeader>
-            <CardTitle className="text-foreground">Birikim Hedefleri</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {savingGoals.length === 0 ? (
-              <p className="text-muted-foreground">Henüz hedef eklenmemiş</p>
-            ) : (
-              savingGoals.slice(0, 3).map((goal) => {
-                const progress = (goal.currentAmount / goal.targetAmount) * 100;
-                
-                return (
-                  <div key={goal.id} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium truncate flex items-center gap-1">
-                        <span>{getCategoryEmoji(goal.category)}</span>
-                        {goal.title}
-                      </span>
-                      {progress >= 100 && (
-                        <Badge className="text-xs bg-income text-income-foreground">Tamamlandı!</Badge>
-                      )}
-                    </div>
-                    <Progress value={Math.min(progress, 100)} className="h-2" />
-                    <div className="text-xs text-muted-foreground">
-                      {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+        <Button 
+          onClick={() => setActiveTab('debts')} 
+          className="h-16 text-left justify-start"
+          variant="outline"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-expense/10 p-2 rounded-lg">
+              <Target className="w-5 h-5 text-expense" />
+            </div>
+            <div>
+              <p className="font-medium">Borç Yönet</p>
+              <p className="text-sm text-muted-foreground">{debts.length} borç</p>
+            </div>
+          </div>
+        </Button>
       </div>
     </div>
   );
 
   const renderIncomes = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Add Income Form */}
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <PlusCircle className="w-5 h-5" />
-            Yeni Gelir Ekle
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="income-description">Açıklama</Label>
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-3">
             <Input
-              id="income-description"
-              placeholder="Maaş, freelance vb."
+              placeholder="Gelir açıklaması (maaş, freelance vb.)"
               value={incomeForm.description}
               onChange={(e) => setIncomeForm(prev => ({ ...prev, description: e.target.value }))}
             />
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                placeholder="Tutar (₺)"
+                value={incomeForm.amount}
+                onChange={(e) => setIncomeForm(prev => ({ ...prev, amount: e.target.value }))}
+              />
+              <Button onClick={addIncome}>
+                <PlusCircle className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="income-amount">Tutar (₺)</Label>
-            <Input
-              id="income-amount"
-              type="number"
-              placeholder="0"
-              value={incomeForm.amount}
-              onChange={(e) => setIncomeForm(prev => ({ ...prev, amount: e.target.value }))}
-            />
-          </div>
-          <Button onClick={addIncome} className="w-full">
-            Gelir Ekle
-          </Button>
         </CardContent>
       </Card>
 
       {/* Income List */}
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="text-foreground">Gelir Listesi</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {incomes.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Henüz gelir eklenmemiş</p>
-          ) : (
-            <div className="space-y-3">
-              {incomes.map((income) => (
-                <div key={income.id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{income.description}</div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(income.date)}
-                    </div>
+      {incomes.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Henüz gelir eklenmemiş
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {incomes.map((income) => (
+            <Card key={income.id}>
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{income.description}</p>
+                    <p className="text-sm text-muted-foreground">{formatDate(income.date)}</p>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-income">{formatCurrency(income.amount)}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-income">{formatCurrency(income.amount)}</span>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteIncome(income.id)}
-                      className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 
   const renderDebts = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Available Debt Fund */}
-      <Card className="bg-gradient-expense border-expense/20 shadow-card">
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <div className="text-sm text-expense-foreground/80 mb-2">Kullanılabilir Borç Fonu</div>
-            <div className="text-3xl font-bold text-expense-foreground">
-              {formatCurrency(availableDebtFund)}
+      <Card className="bg-gradient-expense border-0">
+        <CardContent className="p-4 text-center">
+          <p className="text-sm text-expense-foreground/80">Kullanılabilir Borç Fonu</p>
+          <p className="text-2xl font-bold text-expense-foreground">
+            {formatCurrency(availableDebtFund)}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Add Debt Form */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Input
+              placeholder="Borç açıklaması"
+              value={debtForm.description}
+              onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                placeholder="Tutar (₺)"
+                value={debtForm.amount}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, amount: e.target.value }))}
+              />
+              <Input
+                type="number"
+                placeholder="Taksit sayısı"
+                value={debtForm.installmentCount}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={debtForm.dueDate}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
+              />
+              <Button onClick={addDebt}>
+                <PlusCircle className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Add Debt Form */}
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <PlusCircle className="w-5 h-5" />
-            Yeni Borç Ekle
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="debt-description">Açıklama</Label>
-            <Input
-              id="debt-description"
-              placeholder="Kredi kartı, kişisel borç vb."
-              value={debtForm.description}
-              onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="debt-amount">Tutar (₺)</Label>
-            <Input
-              id="debt-amount"
-              type="number"
-              placeholder="0"
-              value={debtForm.amount}
-              onChange={(e) => setDebtForm(prev => ({ ...prev, amount: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="debt-dueDate">Son Ödeme Tarihi</Label>
-            <Input
-              id="debt-dueDate"
-              type="date"
-              value={debtForm.dueDate}
-              onChange={(e) => setDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="debt-installmentCount">Taksit Sayısı</Label>
-            <Input
-              id="debt-installmentCount"
-              type="number"
-              placeholder="1"
-              min="1"
-              value={debtForm.installmentCount}
-              onChange={(e) => setDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
-            />
-          </div>
-          <Button onClick={addDebt} className="w-full">
-            Borç Ekle (Otomatik Taksitlendir)
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Debt List */}
-      <div className="space-y-4">
-        {debts.map((debt) => {
-          const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
-          const remaining = debt.totalAmount - totalPaid;
-          const progress = (totalPaid / debt.totalAmount) * 100;
-          const daysLeft = getDaysUntilDue(debt.dueDate);
-          
-          let warningLevel = '';
-          let warningText = '';
-          
-          if (daysLeft < 0) {
-            warningLevel = 'destructive';
-            warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
-          } else if (daysLeft === 0) {
-            warningLevel = 'destructive';
-            warningText = 'Son gün!';
-          } else if (daysLeft <= 3) {
-            warningLevel = 'warning';
-            warningText = `${daysLeft} gün kaldı!`;
-          }
+      {debts.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Henüz borç eklenmemiş
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {debts.map((debt) => {
+            const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const remaining = debt.totalAmount - totalPaid;
+            const progress = (totalPaid / debt.totalAmount) * 100;
+            const daysLeft = getDaysUntilDue(debt.dueDate);
+            
+            let isWarning = false;
+            let warningText = '';
+            
+            if (daysLeft < 0) {
+              isWarning = true;
+              warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
+            } else if (daysLeft === 0) {
+              isWarning = true;
+              warningText = 'Son gün!';
+            } else if (daysLeft <= 3) {
+              isWarning = true;
+              warningText = `${daysLeft} gün kaldı!`;
+            }
 
-          return (
-            <Card key={debt.id} className={`bg-gradient-card shadow-card ${warningLevel === 'destructive' ? 'border-destructive' : warningLevel === 'warning' ? 'border-warning' : ''}`}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-foreground">{debt.description}</CardTitle>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Son Ödeme: {formatDate(debt.dueDate)} • {debt.installmentCount} Taksit
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {warningText && (
-                      <Badge variant={warningLevel as any} className="flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" />
-                        {warningText}
-                      </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteDebt(debt.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>İlerleme</span>
-                    <span>{progress.toFixed(1)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-3" />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Ödenen: {formatCurrency(totalPaid)}</span>
-                    <span>Kalan: {formatCurrency(remaining)}</span>
-                  </div>
-                </div>
-
-                {/* Add Payment */}
-                {remaining > 0 && (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Ödeme tutarı"
-                      type="number"
-                      value={paymentForms[debt.id] || ''}
-                      onChange={(e) => setPaymentForms(prev => ({ ...prev, [debt.id]: e.target.value }))}
-                    />
-                    <Button onClick={() => addPayment(debt.id)}>
-                      Öde
-                    </Button>
-                  </div>
-                )}
-
-                {progress >= 100 && (
-                  <div className="text-center p-3 bg-income/20 rounded-lg">
-                    <div className="text-income font-bold">🎉 Borç Tamamen Ödendi! 🎉</div>
-                  </div>
-                )}
-
-                 {/* Payment History */}
-                {debt.payments.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Taksit Listesi ({debt.payments.length}/{debt.installmentCount})</div>
-                    {debt.payments.map((payment, index) => (
-                      <div key={payment.id} className="flex justify-between items-center p-2 bg-secondary/30 rounded">
-                        <div className="text-sm">
-                          Taksit {index + 1}: {formatCurrency(payment.amount)} - {formatDate(payment.date)}
+            return (
+              <Card key={debt.id} className={isWarning ? 'border-destructive' : ''}>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{debt.description}</h3>
+                          {isWarning && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              {warningText}
+                            </Badge>
+                          )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deletePayment(debt.id, payment.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-3 h-3" />
+                        <p className="text-sm text-muted-foreground">
+                          {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteDebt(debt.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>İlerleme ({progress.toFixed(0)}%)</span>
+                        <span>{formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+
+                    {progress >= 100 ? (
+                      <div className="text-center p-2 bg-income/20 rounded text-income text-sm font-medium">
+                        ✅ Tamamlandı
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Ödeme tutarı"
+                          type="number"
+                          value={paymentForms[debt.id] || ''}
+                          onChange={(e) => setPaymentForms(prev => ({ ...prev, [debt.id]: e.target.value }))}
+                        />
+                        <Button onClick={() => addPayment(debt.id)} size="sm">
+                          Öde
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                    )}
 
-      {debts.length === 0 && (
-        <Card className="bg-gradient-card shadow-card">
-          <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">Henüz borç eklenmemiş</p>
-          </CardContent>
-        </Card>
+                    {debt.payments.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Ödemeler ({debt.payments.length}/{debt.installmentCount})
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {debt.payments.map((payment, index) => (
+                            <div key={payment.id} className="flex justify-between items-center text-xs bg-secondary/30 p-2 rounded">
+                              <span>#{index + 1}: {formatCurrency(payment.amount)}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deletePayment(debt.id, payment.id)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 
   const renderSavingGoals = () => (
-    <div className="space-y-6">
-      {/* Add Saving Goal Form */}
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Yeni Birikim Hedefi Ekle
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="saving-title">Hedef Adı</Label>
-            <Input
-              id="saving-title"
-              placeholder="Ev, araba, tatil vb."
-              value={savingForm.title}
-              onChange={(e) => setSavingForm(prev => ({ ...prev, title: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="saving-amount">Hedef Tutar (₺)</Label>
-            <Input
-              id="saving-amount"
-              type="number"
-              placeholder="0"
-              value={savingForm.targetAmount}
-              onChange={(e) => setSavingForm(prev => ({ ...prev, targetAmount: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="saving-category">Kategori</Label>
-            <select
-              id="saving-category"
-              className="w-full p-2 border rounded-md bg-background"
-              value={savingForm.category}
-              onChange={(e) => setSavingForm(prev => ({ ...prev, category: e.target.value as SavingGoal['category'] }))}
-            >
-              <option value="house">🏠 Ev</option>
-              <option value="car">🚗 Araba</option>
-              <option value="vacation">🏖️ Tatil</option>
-              <option value="education">📚 Eğitim</option>
-              <option value="other">💰 Diğer</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="saving-deadline">Hedef Tarihi</Label>
-            <Input
-              id="saving-deadline"
-              type="date"
-              value={savingForm.deadline}
-              onChange={(e) => setSavingForm(prev => ({ ...prev, deadline: e.target.value }))}
-            />
-          </div>
-          <Button onClick={addSavingGoal} className="w-full">
-            Birikim Hedefi Ekle
-          </Button>
+    <div className="space-y-4">
+      {/* Available Savings Fund */}
+      <Card className="bg-gradient-savings border-0">
+        <CardContent className="p-4 text-center">
+          <p className="text-sm text-savings-foreground/80">Kullanılabilir Birikim Fonu</p>
+          <p className="text-2xl font-bold text-savings-foreground">
+            {formatCurrency(availableSavingsFund)}
+          </p>
         </CardContent>
       </Card>
 
-      {/* Available Savings Fund */}
-      <Card className="bg-gradient-savings border-savings/20 shadow-card">
-        <CardContent className="pt-6">
-          <div className="text-center">
-            <div className="text-sm text-savings-foreground/80 mb-2">Kullanılabilir Birikim Fonu</div>
-            <div className="text-3xl font-bold text-savings-foreground">
-              {formatCurrency(availableSavingsFund)}
+      {/* Add Saving Goal Form */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Input
+              placeholder="Hedef adı (ev, araba, tatil vb.)"
+              value={savingForm.title}
+              onChange={(e) => setSavingForm(prev => ({ ...prev, title: e.target.value }))}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                placeholder="Hedef tutar (₺)"
+                value={savingForm.targetAmount}
+                onChange={(e) => setSavingForm(prev => ({ ...prev, targetAmount: e.target.value }))}
+              />
+              <select
+                className="p-2 border rounded-md bg-background text-sm"
+                value={savingForm.category}
+                onChange={(e) => setSavingForm(prev => ({ ...prev, category: e.target.value as SavingGoal['category'] }))}
+              >
+                <option value="house">🏠 Ev</option>
+                <option value="car">🚗 Araba</option>
+                <option value="vacation">🏖️ Tatil</option>
+                <option value="education">📚 Eğitim</option>
+                <option value="other">💰 Diğer</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={savingForm.deadline}
+                onChange={(e) => setSavingForm(prev => ({ ...prev, deadline: e.target.value }))}
+              />
+              <Button onClick={addSavingGoal}>
+                <PlusCircle className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Saving Goals List */}
-      <div className="space-y-4">
-        {savingGoals.map((goal) => {
-          const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
-          const isCompleted = progress >= 100;
+      {savingGoals.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Henüz birikim hedefi eklenmemiş
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {savingGoals.map((goal) => {
+            const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+            const isCompleted = progress >= 100;
 
-          return (
-            <Card key={goal.id} className={`bg-gradient-card shadow-card ${isCompleted ? 'border-income' : ''}`}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-foreground flex items-center gap-2">
-                      <span className="text-2xl">{getCategoryEmoji(goal.category)}</span>
-                      {goal.title}
-                    </CardTitle>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      Hedef Tarihi: {formatDate(goal.deadline)}
+            return (
+              <Card key={goal.id} className={isCompleted ? 'border-income' : ''}>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{getCategoryEmoji(goal.category)}</span>
+                          <h3 className="font-medium">{goal.title}</h3>
+                          {isCompleted && (
+                            <Badge className="text-xs bg-income text-income-foreground">
+                              ✅ Tamamlandı
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Hedef: {formatDate(goal.deadline)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteSavingGoal(goal.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteSavingGoal(goal.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Progress */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>İlerleme</span>
-                    <span>{progress.toFixed(1)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-3" />
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>Biriken: {formatCurrency(goal.currentAmount)}</span>
-                    <span>Hedef: {formatCurrency(goal.targetAmount)}</span>
-                  </div>
-                </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>İlerleme ({progress.toFixed(0)}%)</span>
+                        <span>{formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
 
-                {isCompleted ? (
-                  <div className="text-center p-4 bg-income/20 rounded-lg">
-                    <div className="text-income font-bold text-lg">🎉 Hedef Tamamlandı! 🎉</div>
-                    <div className="text-sm text-income/80 mt-1">Tebrikler! Hedefinize ulaştınız.</div>
+                    {isCompleted ? (
+                      <div className="text-center p-2 bg-income/20 rounded text-income text-sm font-medium">
+                        🎉 Hedefe Ulaşıldı!
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Eklenecek tutar"
+                          type="number"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              const amount = parseFloat(e.currentTarget.value) || 0;
+                              if (amount > 0) {
+                                addSavingAmount(goal.id, amount);
+                                e.currentTarget.value = '';
+                              }
+                            }
+                          }}
+                        />
+                        <Button 
+                          onClick={(e) => {
+                            const input = e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement;
+                            const amount = parseFloat(input?.value || '0');
+                            if (amount > 0) {
+                              addSavingAmount(goal.id, amount);
+                              if (input) input.value = '';
+                            }
+                          }}
+                          size="sm"
+                        >
+                          Ekle
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Eklenecek tutar"
-                      type="number"
-                       onChange={(e) => {
-                         // onChange handler - just update the value
-                       }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          const amount = parseFloat(e.currentTarget.value) || 0;
-                          if (amount > 0) {
-                            addSavingAmount(goal.id, amount);
-                            e.currentTarget.value = '';
-                          }
-                        }
-                      }}
-                    />
-                    <Button onClick={(e) => {
-                      const input = e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement;
-                      const amount = parseFloat(input?.value || '0');
-                      if (amount > 0) {
-                        addSavingAmount(goal.id, amount);
-                        if (input) input.value = '';
-                      }
-                    }}>
-                      Ekle
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {savingGoals.length === 0 && (
-        <Card className="bg-gradient-card shadow-card">
-          <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">Henüz birikim hedefi eklenmemiş</p>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );
