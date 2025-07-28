@@ -26,7 +26,8 @@ import {
   Calendar,
   DollarSign,
   Sun,
-  Moon
+  Moon,
+  Check
 } from 'lucide-react';
 
 // TypeScript Interface Definitions
@@ -679,7 +680,13 @@ const BudgetApp = () => {
                         <div className="space-y-1 max-h-32 overflow-y-auto">
                           {debt.payments.map((payment, index) => (
                             <div key={payment.id} className="flex justify-between items-center text-xs bg-secondary/30 p-2 rounded">
-                              <span>#{index + 1}: {formatCurrency(payment.amount)}</span>
+                              <div className="flex items-center gap-2">
+                                <Check className="w-3 h-3 text-green-500" />
+                                <span>{formatCurrency(payment.amount)}</span>
+                                <span className="text-muted-foreground">
+                                  {new Date(payment.date).toLocaleDateString('tr-TR')}
+                                </span>
+                              </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
