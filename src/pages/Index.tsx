@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
+import { useTheme } from "next-themes";
 import { 
   PlusCircle, 
   Trash2, 
@@ -23,7 +24,9 @@ import {
   Settings,
   ChevronRight,
   Calendar,
-  DollarSign
+  DollarSign,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 // TypeScript Interface Definitions
@@ -126,6 +129,8 @@ const getCategoryEmoji = (category: string) => {
 };
 
 const BudgetApp = () => {
+  const { theme, setTheme } = useTheme();
+  
   // State Management
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -831,10 +836,47 @@ const BudgetApp = () => {
 
   const renderSettings = () => (
     <div className="space-y-6">
+      {/* Theme Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Tema Ayarları
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium">Uygulama Teması</Label>
+              <p className="text-sm text-muted-foreground">Gündüz veya gece modunu seçin</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={theme === "light" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTheme("light")}
+              >
+                <Sun className="h-4 w-4 mr-2" />
+                Gündüz
+              </Button>
+              <Button
+                variant={theme === "dark" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setTheme("dark")}
+              >
+                <Moon className="h-4 w-4 mr-2" />
+                Gece
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Budget Settings Card */}
       <Card className="bg-gradient-card shadow-card">
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+            <DollarSign className="w-5 h-5" />
             Bütçe Ayarları
           </CardTitle>
         </CardHeader>
