@@ -527,17 +527,31 @@ const BudgetApp = () => {
     </div>
   );
 
-  const renderDebts = () => (
-    <div className="space-y-4">
-      {/* Available Debt Fund */}
-      <Card className="bg-gradient-expense border-0">
-        <CardContent className="p-4 text-center">
-          <p className="text-sm text-expense-foreground/80">Kullanılabilir Borç Fonu</p>
-          <p className="text-2xl font-bold text-expense-foreground">
-            {formatCurrency(availableDebtFund)}
-          </p>
-        </CardContent>
-      </Card>
+  const renderDebts = () => {
+    const totalDebtAmount = debts.reduce((sum, debt) => sum + debt.totalAmount, 0);
+    
+    return (
+      <div className="space-y-4">
+        {/* Debt Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Card className="bg-gradient-expense border-0">
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-expense-foreground/80">Toplam Borç</p>
+              <p className="text-2xl font-bold text-expense-foreground">
+                {formatCurrency(totalDebtAmount)}
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-expense border-0">
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-expense-foreground/80">Kullanılabilir Borç Fonu</p>
+              <p className="text-2xl font-bold text-expense-foreground">
+                {formatCurrency(availableDebtFund)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
       {/* Add Debt Form */}
       <Card>
@@ -687,7 +701,8 @@ const BudgetApp = () => {
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   const renderSavingGoals = () => (
     <div className="space-y-4">
