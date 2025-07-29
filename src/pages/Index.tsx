@@ -960,7 +960,7 @@ const BudgetApp = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">💰 Akıllı Bütçe Asistanı</h1>
@@ -968,13 +968,15 @@ const BudgetApp = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Ana Sayfa</TabsTrigger>
-            <TabsTrigger value="incomes" className="text-xs sm:text-sm">Gelirler</TabsTrigger>
-            <TabsTrigger value="debts" className="text-xs sm:text-sm">Borçlar</TabsTrigger>
-            <TabsTrigger value="goals" className="text-xs sm:text-sm">Birikimler</TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs sm:text-sm">Ayarlar</TabsTrigger>
-          </TabsList>
+          <div className="hidden sm:block">
+            <TabsList className="grid w-full grid-cols-5 mb-6">
+              <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Ana Sayfa</TabsTrigger>
+              <TabsTrigger value="incomes" className="text-xs sm:text-sm">Gelirler</TabsTrigger>
+              <TabsTrigger value="debts" className="text-xs sm:text-sm">Borçlar</TabsTrigger>
+              <TabsTrigger value="goals" className="text-xs sm:text-sm">Birikimler</TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs sm:text-sm">Ayarlar</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="dashboard" className="space-y-6">
             {renderDashboard()}
@@ -996,6 +998,57 @@ const BudgetApp = () => {
             {renderSettings()}
           </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border sm:hidden">
+        <div className="grid grid-cols-5 h-16">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              activeTab === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-xs">Anasayfa</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('incomes')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              activeTab === 'incomes' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <TrendingUp className="w-5 h-5" />
+            <span className="text-xs">Gelirler</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('debts')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              activeTab === 'debts' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Target className="w-5 h-5" />
+            <span className="text-xs">Borçlar</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('goals')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              activeTab === 'goals' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Wallet className="w-5 h-5" />
+            <span className="text-xs">Birikimler</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            <span className="text-xs">Ayarlar</span>
+          </button>
+        </div>
       </div>
     </div>
   );
