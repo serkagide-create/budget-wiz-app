@@ -51,6 +51,8 @@ interface Debt {
   dueDate: string;
   installmentCount: number;
   payments: Payment[];
+  monthlyRepeat?: boolean;
+  nextPaymentDate?: string;
 }
 
 interface SavingGoal {
@@ -142,7 +144,7 @@ const BudgetApp = () => {
 
   // Form States
   const [incomeForm, setIncomeForm] = useState({ description: '', amount: '' });
-  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '' });
+  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
     targetAmount: '', 
@@ -232,22 +234,28 @@ const BudgetApp = () => {
       return;
     }
 
+    // Calculate next payment date (15th of current/next month)
+    const today = new Date();
+    let nextPaymentDate = new Date(today.getFullYear(), today.getMonth(), 15);
+    if (today.getDate() >= 15) {
+      nextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+    }
+
     const newDebt: Debt = {
       id: Date.now().toString(),
       description: debtForm.description.trim(),
       totalAmount: parseFloat(debtForm.amount),
       dueDate: debtForm.dueDate,
       installmentCount: installmentCount,
-      payments: []
+      payments: [],
+      monthlyRepeat: debtForm.monthlyRepeat,
+      nextPaymentDate: debtForm.monthlyRepeat ? nextPaymentDate.toISOString() : undefined
     };
 
     setDebts(prev => [newDebt, ...prev]);
     
-    // Otomatik taksit dağıtımı
-    autoDistributeInstallments(newDebt);
-    
-    setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '' });
-    toast({ title: "Başarılı", description: "Borç eklendi ve taksitler dağıtıldı" });
+    setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
+    toast({ title: "Başarılı", description: "Borç eklendi" });
   };
 
   // Otomatik taksit dağıtımı
@@ -341,6 +349,99 @@ const BudgetApp = () => {
     setDebts(prev => prev.filter(debt => debt.id !== id));
     toast({ title: "Başarılı", description: "Borç silindi" });
   };
+
+  // Pay installment function
+  const payInstallment = (debtId: string) => {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+
+    const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const remaining = debt.totalAmount - totalPaid;
+    const installmentAmount = Math.min(
+      Math.ceil(debt.totalAmount / debt.installmentCount),
+      remaining
+    );
+
+    if (installmentAmount > availableDebtFund) {
+      toast({ title: "Hata", description: "Borç fonu yetersiz", variant: "destructive" });
+      return;
+    }
+
+    const newPayment: Payment = {
+      id: Date.now().toString(),
+      amount: installmentAmount,
+      date: new Date().toISOString()
+    };
+
+    setDebts(prev => prev.map(d => 
+      d.id === debtId 
+        ? { ...d, payments: [newPayment, ...d.payments] }
+        : d
+    ));
+
+    toast({ title: "Başarılı", description: `Taksit ödendi: ${formatCurrency(installmentAmount)}` });
+  };
+
+  // Check and process automatic monthly payments (15th of each month)
+  useEffect(() => {
+    const checkAutoPayments = () => {
+      const today = new Date();
+      const todayStr = today.toDateString();
+      
+      // Check if today is the 15th
+      if (today.getDate() === 15) {
+        debts.forEach(debt => {
+          if (debt.monthlyRepeat && debt.nextPaymentDate) {
+            const nextPaymentDate = new Date(debt.nextPaymentDate);
+            const nextPaymentStr = nextPaymentDate.toDateString();
+            
+            // If today matches the next payment date
+            if (todayStr === nextPaymentStr) {
+              const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+              const remaining = debt.totalAmount - totalPaid;
+              
+              if (remaining > 0) {
+                const installmentAmount = Math.min(
+                  Math.ceil(debt.totalAmount / debt.installmentCount),
+                  remaining,
+                  availableDebtFund
+                );
+                
+                if (installmentAmount > 0) {
+                  const newPayment: Payment = {
+                    id: Date.now().toString(),
+                    amount: installmentAmount,
+                    date: new Date().toISOString()
+                  };
+
+                  setDebts(prev => prev.map(d => 
+                    d.id === debt.id 
+                      ? { 
+                          ...d, 
+                          payments: [newPayment, ...d.payments],
+                          nextPaymentDate: new Date(today.getFullYear(), today.getMonth() + 1, 15).toISOString()
+                        }
+                      : d
+                  ));
+
+                  toast({ 
+                    title: "Otomatik Ödeme", 
+                    description: `${debt.description} için ${formatCurrency(installmentAmount)} ödendi` 
+                  });
+                }
+              }
+            }
+          }
+        });
+      }
+    };
+
+    // Check on component mount and every hour
+    checkAutoPayments();
+    const interval = setInterval(checkAutoPayments, 60 * 60 * 1000); // Check every hour
+    
+    return () => clearInterval(interval);
+  }, [debts, availableDebtFund, toast]);
 
   // Saving Goal Functions
   const addSavingGoal = () => {
@@ -587,6 +688,18 @@ const BudgetApp = () => {
                 <PlusCircle className="w-4 h-4" />
               </Button>
             </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="monthlyRepeat"
+                checked={debtForm.monthlyRepeat}
+                onChange={(e) => setDebtForm(prev => ({ ...prev, monthlyRepeat: e.target.checked }))}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="monthlyRepeat" className="text-sm">
+                Her ay tekrarlansın (15. günde otomatik öde)
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -659,16 +772,28 @@ const BudgetApp = () => {
                         ✅ Tamamlandı
                       </div>
                     ) : (
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Ödeme tutarı"
-                          type="number"
-                          value={paymentForms[debt.id] || ''}
-                          onChange={(e) => setPaymentForms(prev => ({ ...prev, [debt.id]: e.target.value }))}
-                        />
-                        <Button onClick={() => addPayment(debt.id)} size="sm">
-                          Öde
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => payInstallment(debt.id)} 
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                          >
+                            Taksit Öde ({formatCurrency(Math.min(Math.ceil(debt.totalAmount / debt.installmentCount), remaining))})
+                          </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Özel tutar"
+                            type="number"
+                            value={paymentForms[debt.id] || ''}
+                            onChange={(e) => setPaymentForms(prev => ({ ...prev, [debt.id]: e.target.value }))}
+                          />
+                          <Button onClick={() => addPayment(debt.id)} size="sm">
+                            Öde
+                          </Button>
+                        </div>
                       </div>
                     )}
 
