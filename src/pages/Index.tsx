@@ -36,6 +36,9 @@ interface Income {
   description: string;
   amount: number;
   date: string;
+  category: string;
+  monthlyRepeat?: boolean;
+  nextIncomeDate?: string;
 }
 
 interface Payment {
@@ -67,6 +70,7 @@ interface SavingGoal {
 interface Settings {
   debtPercentage: number;
   savingsPercentage: number;
+  debtStrategy: 'snowball' | 'avalanche';
 }
 
 // Utility Functions
@@ -138,12 +142,12 @@ const BudgetApp = () => {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
-  const [settings, setSettings] = useState<Settings>({ debtPercentage: 30, savingsPercentage: 20 });
+  const [settings, setSettings] = useState<Settings>({ debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' });
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
 
   // Form States
-  const [incomeForm, setIncomeForm] = useState({ description: '', amount: '' });
+  const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false });
   const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
@@ -177,7 +181,7 @@ const BudgetApp = () => {
     setIncomes(loadFromStorage('budgetApp_incomes', []));
     setDebts(loadFromStorage('budgetApp_debts', []));
     setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
-    setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20 }));
+    setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
   }, []);
 
   // Save data when state changes
@@ -199,20 +203,30 @@ const BudgetApp = () => {
 
   // Income Functions
   const addIncome = () => {
-    if (!incomeForm.description.trim() || !incomeForm.amount) {
+    if (!incomeForm.description.trim() || !incomeForm.amount || !incomeForm.category) {
       toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
       return;
+    }
+
+    // Calculate next income date (same day next month if monthly repeat)
+    let nextIncomeDate;
+    if (incomeForm.monthlyRepeat) {
+      const today = new Date();
+      nextIncomeDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
     }
 
     const newIncome: Income = {
       id: Date.now().toString(),
       description: incomeForm.description.trim(),
       amount: parseFloat(incomeForm.amount),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      category: incomeForm.category,
+      monthlyRepeat: incomeForm.monthlyRepeat,
+      nextIncomeDate: nextIncomeDate?.toISOString()
     };
 
     setIncomes(prev => [newIncome, ...prev]);
-    setIncomeForm({ description: '', amount: '' });
+    setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false });
     toast({ title: "Başarılı", description: "Gelir eklendi" });
   };
 
@@ -382,8 +396,43 @@ const BudgetApp = () => {
     toast({ title: "Başarılı", description: `Taksit ödendi: ${formatCurrency(installmentAmount)}` });
   };
 
-  // Check and process automatic monthly payments (15th of each month)
+  // Check and process automatic monthly incomes and payments
   useEffect(() => {
+    const checkAutoIncomes = () => {
+      const today = new Date();
+      const todayStr = today.toDateString();
+      
+      incomes.forEach(income => {
+        if (income.monthlyRepeat && income.nextIncomeDate) {
+          const nextIncomeDate = new Date(income.nextIncomeDate);
+          const nextIncomeStr = nextIncomeDate.toDateString();
+          
+          if (todayStr === nextIncomeStr) {
+            const newIncome: Income = {
+              id: Date.now().toString(),
+              description: income.description,
+              amount: income.amount,
+              date: new Date().toISOString(),
+              category: income.category,
+              monthlyRepeat: true,
+              nextIncomeDate: new Date(today.getFullYear(), today.getMonth() + 1, today.getDate()).toISOString()
+            };
+
+            setIncomes(prev => prev.map(i => 
+              i.id === income.id 
+                ? { ...i, nextIncomeDate: newIncome.nextIncomeDate }
+                : i
+            ).concat(newIncome));
+
+            toast({ 
+              title: "Otomatik Gelir", 
+              description: `${income.description} geliri eklendi: ${formatCurrency(income.amount)}` 
+            });
+          }
+        }
+      });
+    };
+
     const checkAutoPayments = () => {
       const today = new Date();
       const todayStr = today.toDateString();
@@ -437,11 +486,15 @@ const BudgetApp = () => {
     };
 
     // Check on component mount and every hour
+    checkAutoIncomes();
     checkAutoPayments();
-    const interval = setInterval(checkAutoPayments, 60 * 60 * 1000); // Check every hour
+    const interval = setInterval(() => {
+      checkAutoIncomes();
+      checkAutoPayments();
+    }, 60 * 60 * 1000); // Check every hour
     
     return () => clearInterval(interval);
-  }, [debts, availableDebtFund, toast]);
+  }, [incomes, debts, availableDebtFund, toast]);
 
   // Saving Goal Functions
   const addSavingGoal = () => {
@@ -580,17 +633,42 @@ const BudgetApp = () => {
               value={incomeForm.description}
               onChange={(e) => setIncomeForm(prev => ({ ...prev, description: e.target.value }))}
             />
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Input
                 type="number"
                 placeholder="Tutar (₺)"
                 value={incomeForm.amount}
                 onChange={(e) => setIncomeForm(prev => ({ ...prev, amount: e.target.value }))}
               />
-              <Button onClick={addIncome}>
-                <PlusCircle className="w-4 h-4" />
-              </Button>
+              <select
+                className="p-2 border rounded-md bg-background text-sm"
+                value={incomeForm.category}
+                onChange={(e) => setIncomeForm(prev => ({ ...prev, category: e.target.value }))}
+              >
+                <option value="">Kategori seçin</option>
+                <option value="salary">💼 Maaş</option>
+                <option value="freelance">💻 Freelance</option>
+                <option value="business">🏢 İş</option>
+                <option value="investment">📈 Yatırım</option>
+                <option value="other">💰 Diğer</option>
+              </select>
             </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="incomeMonthlyRepeat"
+                checked={incomeForm.monthlyRepeat}
+                onChange={(e) => setIncomeForm(prev => ({ ...prev, monthlyRepeat: e.target.checked }))}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="incomeMonthlyRepeat" className="text-sm">
+                Her ay tekrarlansın (aynı tarihte otomatik ekle)
+              </Label>
+            </div>
+            <Button onClick={addIncome} className="w-full">
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Gelir Ekle
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -606,10 +684,19 @@ const BudgetApp = () => {
             <Card key={income.id}>
               <CardContent className="p-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{income.description}</p>
-                    <p className="text-sm text-muted-foreground">{formatDate(income.date)}</p>
-                  </div>
+                 <div>
+                   <div className="flex items-center gap-2">
+                     <p className="font-medium">{income.description}</p>
+                     {income.monthlyRepeat && (
+                       <Badge variant="secondary" className="text-xs">
+                         🔄 Aylık
+                       </Badge>
+                     )}
+                   </div>
+                   <p className="text-sm text-muted-foreground">
+                     {formatDate(income.date)} • {income.category}
+                   </p>
+                 </div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-income">{formatCurrency(income.amount)}</span>
                     <Button
@@ -1019,68 +1106,126 @@ const BudgetApp = () => {
         </CardContent>
       </Card>
 
-      {/* Budget Settings Card */}
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="text-foreground flex items-center gap-2">
-            <DollarSign className="w-5 h-5" />
-            Bütçe Ayarları
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="debt-percentage">Borç Fonu Yüzdesi: %{settings.debtPercentage}</Label>
-              <Slider
-                id="debt-percentage"
-                min={0}
-                max={100}
-                step={5}
-                value={[settings.debtPercentage]}
-                onValueChange={(value) => setSettings(prev => ({ ...prev, debtPercentage: value[0] }))}
-                className="mt-2"
-              />
-              <div className="text-sm text-muted-foreground mt-1">
-                Toplam gelirin %{settings.debtPercentage}'i borçlar için ayrılır
-              </div>
-            </div>
+       {/* Debt Strategy Settings Card */}
+       <Card className="bg-gradient-card shadow-card">
+         <CardHeader>
+           <CardTitle className="text-foreground flex items-center gap-2">
+             <Target className="w-5 h-5" />
+             Borç Ödeme Stratejisi
+           </CardTitle>
+         </CardHeader>
+         <CardContent>
+           <div className="space-y-4">
+             <div>
+               <Label className="text-sm font-medium">Hangi stratejiyi kullanmak istiyorsunuz?</Label>
+               <div className="mt-2 space-y-3">
+                 <div 
+                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                     settings.debtStrategy === 'snowball' ? 'border-primary bg-primary/10' : 'border-border'
+                   }`}
+                   onClick={() => setSettings(prev => ({ ...prev, debtStrategy: 'snowball' }))}
+                 >
+                   <div className="flex items-center gap-2">
+                     <input
+                       type="radio"
+                       checked={settings.debtStrategy === 'snowball'}
+                       onChange={() => setSettings(prev => ({ ...prev, debtStrategy: 'snowball' }))}
+                       className="w-4 h-4"
+                     />
+                     <div>
+                       <div className="font-medium">⚡ Borç Kartopu</div>
+                       <div className="text-sm text-muted-foreground">En küçük borçtan başla (motivasyon için)</div>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 <div 
+                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                     settings.debtStrategy === 'avalanche' ? 'border-primary bg-primary/10' : 'border-border'
+                   }`}
+                   onClick={() => setSettings(prev => ({ ...prev, debtStrategy: 'avalanche' }))}
+                 >
+                   <div className="flex items-center gap-2">
+                     <input
+                       type="radio"
+                       checked={settings.debtStrategy === 'avalanche'}
+                       onChange={() => setSettings(prev => ({ ...prev, debtStrategy: 'avalanche' }))}
+                       className="w-4 h-4"
+                     />
+                     <div>
+                       <div className="font-medium">🏔️ Borç Çığ</div>
+                       <div className="text-sm text-muted-foreground">En yüksek faizli borçtan başla (matematik için)</div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </CardContent>
+       </Card>
 
-            <div>
-              <Label htmlFor="savings-percentage">Birikim Fonu Yüzdesi: %{settings.savingsPercentage}</Label>
-              <Slider
-                id="savings-percentage"
-                min={0}
-                max={100}
-                step={5}
-                value={[settings.savingsPercentage]}
-                onValueChange={(value) => setSettings(prev => ({ ...prev, savingsPercentage: value[0] }))}
-                className="mt-2"
-              />
-              <div className="text-sm text-muted-foreground mt-1">
-                Toplam gelirin %{settings.savingsPercentage}'i birikim için ayrılır
-              </div>
-            </div>
+       {/* Budget Settings Card */}
+       <Card className="bg-gradient-card shadow-card">
+         <CardHeader>
+           <CardTitle className="text-foreground flex items-center gap-2">
+             <DollarSign className="w-5 h-5" />
+             Bütçe Ayarları
+           </CardTitle>
+         </CardHeader>
+         <CardContent className="space-y-6">
+           <div className="space-y-4">
+             <div>
+               <Label htmlFor="debt-percentage">Borç Fonu Yüzdesi: %{settings.debtPercentage}</Label>
+               <Slider
+                 id="debt-percentage"
+                 min={0}
+                 max={100}
+                 step={5}
+                 value={[settings.debtPercentage]}
+                 onValueChange={(value) => setSettings(prev => ({ ...prev, debtPercentage: value[0] }))}
+                 className="mt-2"
+               />
+               <div className="text-sm text-muted-foreground mt-1">
+                 Toplam gelirin %{settings.debtPercentage}'i borçlar için ayrılır
+               </div>
+             </div>
 
-            <div className="pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Kalan %{100 - settings.debtPercentage - settings.savingsPercentage} gelir serbest kullanım içindir
-              </div>
-            </div>
-          </div>
+             <div>
+               <Label htmlFor="savings-percentage">Birikim Fonu Yüzdesi: %{settings.savingsPercentage}</Label>
+               <Slider
+                 id="savings-percentage"
+                 min={0}
+                 max={100}
+                 step={5}
+                 value={[settings.savingsPercentage]}
+                 onValueChange={(value) => setSettings(prev => ({ ...prev, savingsPercentage: value[0] }))}
+                 className="mt-2"
+               />
+               <div className="text-sm text-muted-foreground mt-1">
+                 Toplam gelirin %{settings.savingsPercentage}'i birikim için ayrılır
+               </div>
+             </div>
 
-          {/* Fund Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-            <div className="p-4 bg-expense/10 rounded-lg">
-              <div className="text-sm text-muted-foreground">Borç Fonu</div>
-              <div className="text-xl font-bold text-expense">{formatCurrency(debtFund)}</div>
-            </div>
-            <div className="p-4 bg-savings/10 rounded-lg">
-              <div className="text-sm text-muted-foreground">Birikim Fonu</div>
-              <div className="text-xl font-bold text-savings">{formatCurrency(savingsFund)}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+             <div className="pt-4 border-t">
+               <div className="text-sm text-muted-foreground">
+                 Kalan %{100 - settings.debtPercentage - settings.savingsPercentage} gelir serbest kullanım içindir
+               </div>
+             </div>
+           </div>
+
+           {/* Fund Preview */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+             <div className="p-4 bg-expense/10 rounded-lg">
+               <div className="text-sm text-muted-foreground">Borç Fonu</div>
+               <div className="text-xl font-bold text-expense">{formatCurrency(debtFund)}</div>
+             </div>
+             <div className="p-4 bg-savings/10 rounded-lg">
+               <div className="text-sm text-muted-foreground">Birikim Fonu</div>
+               <div className="text-xl font-bold text-savings">{formatCurrency(savingsFund)}</div>
+             </div>
+           </div>
+         </CardContent>
+       </Card>
     </div>
   );
 
