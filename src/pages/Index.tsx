@@ -146,6 +146,11 @@ const BudgetApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
 
+  // AI Assistant State
+  const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'assistant', message: string, timestamp: Date}>>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   // Form States
   const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false });
   const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
@@ -182,6 +187,14 @@ const BudgetApp = () => {
     setDebts(loadFromStorage('budgetApp_debts', []));
     setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
     setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
+    setChatMessages(loadFromStorage('budgetApp_chatMessages', [
+      {
+        id: 'welcome',
+        type: 'assistant',
+        message: '👋 Merhaba! Ben sizin kişisel finansal asistanınızım. Finansal durumunuzu analiz ediyor, yatırım önerileri sunuyor ve finansal özgürlüğe giden yolda size rehberlik ediyorum. Size nasıl yardımcı olabilirim?',
+        timestamp: new Date()
+      }
+    ]));
   }, []);
 
   // Save data when state changes
@@ -189,6 +202,7 @@ const BudgetApp = () => {
   useEffect(() => { saveToStorage('budgetApp_debts', debts); }, [debts]);
   useEffect(() => { saveToStorage('budgetApp_savingGoals', savingGoals); }, [savingGoals]);
   useEffect(() => { saveToStorage('budgetApp_settings', settings); }, [settings]);
+  useEffect(() => { saveToStorage('budgetApp_chatMessages', chatMessages); }, [chatMessages]);
 
   // Calculations
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
@@ -280,6 +294,146 @@ const BudgetApp = () => {
     }
 
     return recommendations;
+  };
+
+  // AI Assistant Functions
+  const analyzeFinancialSituation = () => {
+    const completedDebts = debts.filter(debt => {
+      const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+      return totalPaid >= debt.totalAmount;
+    }).length;
+    
+    const activeDebts = debts.length - completedDebts;
+    const totalDebtRemaining = debts.reduce((sum, debt) => {
+      const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+      return sum + Math.max(0, debt.totalAmount - totalPaid);
+    }, 0);
+
+    const completedGoals = savingGoals.filter(goal => goal.currentAmount >= goal.targetAmount).length;
+    const totalSavingsProgress = savingGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
+
+    const debtToIncomeRatio = totalIncome > 0 ? (totalDebtRemaining / totalIncome) * 100 : 0;
+    const savingsRate = totalIncome > 0 ? (totalSavingsProgress / totalIncome) * 100 : 0;
+
+    return {
+      totalIncome,
+      totalDebtRemaining,
+      activeDebts,
+      completedDebts,
+      completedGoals,
+      totalSavingsProgress,
+      debtToIncomeRatio,
+      savingsRate,
+      availableDebtFund,
+      availableSavingsFund
+    };
+  };
+
+  const generateAIResponse = (userMessage: string) => {
+    const analysis = analyzeFinancialSituation();
+    const lowerMessage = userMessage.toLowerCase();
+
+    // Finansal durum analizi
+    if (lowerMessage.includes('finansal durum') || lowerMessage.includes('durum nasıl') || lowerMessage.includes('analiz')) {
+      if (analysis.totalIncome === 0) {
+        return '💡 Henüz gelir kaydınız bulunmuyor. Finansal analiz için öncelikle gelirlerinizi eklemenizi öneririm. Gelirler sekmesinden başlayabilirsiniz.';
+      }
+
+      let response = `📊 **Finansal Durum Analizi:**\n\n`;
+      response += `💰 Toplam Gelir: ${formatCurrency(analysis.totalIncome)}\n`;
+      response += `📉 Kalan Borç: ${formatCurrency(analysis.totalDebtRemaining)}\n`;
+      response += `💳 Aktif Borç: ${analysis.activeDebts} adet\n`;
+      response += `✅ Tamamlanan Borç: ${analysis.completedDebts} adet\n`;
+      response += `🎯 Tamamlanan Hedef: ${analysis.completedGoals} adet\n\n`;
+
+      if (analysis.debtToIncomeRatio > 50) {
+        response += `⚠️ **Dikkat:** Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Bu oran %30'un altında olmalı. Borç ödeme stratejinizi gözden geçirin.`;
+      } else if (analysis.debtToIncomeRatio > 30) {
+        response += `⚡ Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Kabul edilebilir seviyede ancak iyileştirilebilir.`;
+      } else {
+        response += `✅ Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Sağlıklı bir seviyede!`;
+      }
+
+      return response;
+    }
+
+    // Yatırım önerileri
+    if (lowerMessage.includes('yatırım') || lowerMessage.includes('invest')) {
+      if (analysis.totalDebtRemaining > 0) {
+        return `💡 **Yatırım Önerisi:** Öncelikle borçlarınızı ödemenizi öneririm. ${formatCurrency(analysis.totalDebtRemaining)} toplam borcunuz var. Yüksek faizli borçlar yatırım getirilerinden daha zararlıdır.\n\n✅ Borçlarınızı ödedikten sonra şu yatırım seçeneklerini değerlendirebilirsiniz:\n• Bireysel Emeklilik (BES)\n• Altın/Döviz (portföyün %10-20'si)\n• Borsa İstanbul hisse senetleri\n• Tahvil ve bono yatırımları`;
+      }
+
+      if (analysis.availableSavingsFund < 10000) {
+        return `💰 Acil durum fonu oluşturmaya odaklanın. En az 3-6 aylık gideri karşılayacak kadar birikim yapın. Şu an ${formatCurrency(analysis.availableSavingsFund)} kullanılabilir birikim fonunuz var.`;
+      }
+
+      return `💎 **Yatırım Önerileri:**\n\n🏦 **Düşük Risk:**\n• Devlet tahvilleri (%40-50)\n• Banka mevduatı (%20-30)\n\n📈 **Orta Risk:**\n• BİST-30 endeks fonu (%20-30)\n• Karma yatırım fonları (%10-20)\n\n⚡ **Yüksek Risk:**\n• Bireysel hisse senetleri (%5-10)\n• Kripto para (%2-5)\n\nRisk seviyenize göre portföy oluşturun!`;
+    }
+
+    // Kumar uyarısı
+    if (lowerMessage.includes('kumar') || lowerMessage.includes('bahis') || lowerMessage.includes('şans oyun')) {
+      return `🚫 **UYARI:** Kumar finansal özgürlüğün tam karşıtıdır!\n\n💔 Kumar:\n• %95 oranında kayba neden olur\n• Bağımlılık yaratır\n• Finansal planları yok eder\n\n✅ **Bunun yerine:**\n• Borçlarınızı ödeyin\n• Acil durum fonu oluşturun\n• Eğitime yatırım yapın\n• Sağlıklı yatırım araçlarını kullanın\n\nFinansal özgürlük kumar ile değil, disiplin ve sabırla gelir! 💪`;
+    }
+
+    // Borç yönetimi
+    if (lowerMessage.includes('borç') || lowerMessage.includes('debt')) {
+      if (analysis.activeDebts === 0) {
+        return `🎉 Tebrikler! Aktif borcunuz bulunmuyor. Şimdi birikim ve yatırıma odaklanabilirsiniz. Öncelikle acil durum fonu oluşturun.`;
+      }
+
+      const strategy = settings.debtStrategy === 'snowball' ? 'Borç Kartopu (en küçük borçtan başla)' : 'Borç Çığ (en yüksek faizden başla)';
+      
+      return `💳 **Borç Yönetimi Önerileri:**\n\n📊 Mevcut Durum:\n• ${analysis.activeDebts} aktif borç\n• ${formatCurrency(analysis.totalDebtRemaining)} toplam borç\n• ${formatCurrency(analysis.availableDebtFund)} kullanılabilir borç fonu\n\n⚡ Strateji: ${strategy}\n\n💡 **Öneriler:**\n• Minimum ödemeleri aksatmayın\n• Fazla parayı öncelikli borca yönlendirin\n• Yeni borç almaktan kaçının\n• Gelir artırıcı aktivitelere yönelin`;
+    }
+
+    // Genel finansal tavsiye
+    if (lowerMessage.includes('nasıl') || lowerMessage.includes('tavsiye') || lowerMessage.includes('öneri')) {
+      return `🎯 **Finansal Özgürlük Yol Haritası:**\n\n1️⃣ **Temel Adımlar:**\n• Gelir-gider dengesini kur\n• Acil durum fonu oluştur (3-6 ay)\n• Yüksek faizli borçları öde\n\n2️⃣ **Orta Vadeli:**\n• Düzenli birikim yap\n• Eğitime yatırım yap\n• Yan gelir kayakları oluştur\n\n3️⃣ **Uzun Vadeli:**\n• Yatırım portföyü oluştur\n• Emlak yatırımı değerlendir\n• Pasif gelir kayakları yarat\n\n💪 Finansal özgürlük bir maraton, sprint değil!`;
+    }
+
+    // Varsayılan yanıt
+    return `🤖 Size yardımcı olmak için buradayım! Şu konularda size yardımcı olabilirim:\n\n• "Finansal durumum nasıl?" - Detaylı analiz\n• "Yatırım önerileri ver" - Portföy önerileri\n• "Borçlarımı nasıl yöneteyim?" - Borç stratejileri\n• "Birikim planı yap" - Hedef belirleme\n\nHangi konuda yardım istiyorsunuz?`;
+  };
+
+  const handleChatSubmit = () => {
+    if (!chatInput.trim()) return;
+
+    const userMessage = {
+      id: Date.now().toString() + '_user',
+      type: 'user' as const,
+      message: chatInput,
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setIsProcessing(true);
+
+    // AI yanıtını simüle et (gerçek uygulamada API çağrısı olacak)
+    setTimeout(() => {
+      const aiResponse = generateAIResponse(chatInput);
+      const assistantMessage = {
+        id: Date.now().toString() + '_assistant',
+        type: 'assistant' as const,
+        message: aiResponse,
+        timestamp: new Date()
+      };
+
+      setChatMessages(prev => [...prev, assistantMessage]);
+      setIsProcessing(false);
+    }, 1000 + Math.random() * 2000); // 1-3 saniye arası
+
+    setChatInput('');
+  };
+
+  const clearChat = () => {
+    setChatMessages([
+      {
+        id: 'welcome',
+        type: 'assistant',
+        message: '👋 Merhaba! Ben sizin kişisel finansal asistanınızım. Finansal durumunuzu analiz ediyor, yatırım önerileri sunuyor ve finansal özgürlüğe giden yolda size rehberlik ediyorum. Size nasıl yardımcı olabilirim?',
+        timestamp: new Date()
+      }
+    ]);
   };
 
   // Income Functions
@@ -617,6 +771,133 @@ const BudgetApp = () => {
     setSavingGoals(prev => prev.filter(goal => goal.id !== id));
     toast({ title: "Başarılı", description: "Hedef silindi" });
   };
+
+  // AI Assistant Render Function
+  const renderAIAssistant = () => (
+    <div className="space-y-4">
+      {/* AI Chat Interface */}
+      <Card className="h-96 flex flex-col">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              🤖 AI Finansal Danışman
+              <Badge variant="secondary" className="text-xs">Beta</Badge>
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={clearChat}>
+              Temizle
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="flex-1 flex flex-col min-h-0">
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2" style={{maxHeight: '280px'}}>
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    msg.type === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap text-sm">{msg.message}</div>
+                  <div className="text-xs opacity-60 mt-1">
+                    {msg.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {isProcessing && (
+              <div className="flex justify-start">
+                <div className="bg-muted text-muted-foreground p-3 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    <span className="text-sm">AI düşünüyor...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Finansal durumum nasıl? Yatırım önerisi ver..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !isProcessing) {
+                  handleChatSubmit();
+                }
+              }}
+              disabled={isProcessing}
+            />
+            <Button 
+              onClick={handleChatSubmit} 
+              disabled={!chatInput.trim() || isProcessing}
+              size="sm"
+            >
+              Gönder
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Questions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">💡 Hızlı Sorular</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              "Finansal durumum nasıl?",
+              "Yatırım önerileri ver",
+              "Borçlarımı nasıl yöneteyim?",
+              "Birikim planı yap"
+            ].map((question) => (
+              <Button
+                key={question}
+                variant="outline"
+                size="sm"
+                className="text-left justify-start h-auto p-3"
+                onClick={() => {
+                  setChatInput(question);
+                  setTimeout(() => handleChatSubmit(), 100);
+                }}
+                disabled={isProcessing}
+              >
+                <div className="text-sm">{question}</div>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Features Info */}
+      <Card className="bg-gradient-to-r from-primary/10 to-secondary/10">
+        <CardContent className="p-4">
+          <div className="space-y-2">
+            <h3 className="font-medium flex items-center gap-2">
+              🚀 AI Danışman Özellikleri
+            </h3>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <div>• Gerçek finansal verilerinizi analiz eder</div>
+              <div>• Kişiselleştirilmiş yatırım önerileri sunar</div>
+              <div>• Borç ödeme stratejileri geliştirir</div>
+              <div>• Finansal özgürlük için yol haritası çizer</div>
+              <div>• Risk analizi ve uyarılar yapar</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 
   // Render Functions
   const renderDashboard = () => {
@@ -1500,11 +1781,12 @@ const BudgetApp = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="hidden sm:block">
-            <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="dashboard" className="text-xs sm:text-sm">Ana Sayfa</TabsTrigger>
               <TabsTrigger value="incomes" className="text-xs sm:text-sm">Gelirler</TabsTrigger>
               <TabsTrigger value="debts" className="text-xs sm:text-sm">Borçlar</TabsTrigger>
               <TabsTrigger value="goals" className="text-xs sm:text-sm">Birikimler</TabsTrigger>
+              <TabsTrigger value="ai-assistant" className="text-xs sm:text-sm">AI Danışman</TabsTrigger>
               <TabsTrigger value="settings" className="text-xs sm:text-sm">Ayarlar</TabsTrigger>
             </TabsList>
           </div>
@@ -1525,6 +1807,10 @@ const BudgetApp = () => {
             {renderSavingGoals()}
           </TabsContent>
 
+          <TabsContent value="ai-assistant" className="space-y-6">
+            {renderAIAssistant()}
+          </TabsContent>
+
           <TabsContent value="settings" className="space-y-6">
             {renderSettings()}
           </TabsContent>
@@ -1533,7 +1819,7 @@ const BudgetApp = () => {
 
       {/* Mobile Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border sm:hidden">
-        <div className="grid grid-cols-5 h-16">
+        <div className="grid grid-cols-6 h-16">
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex flex-col items-center justify-center gap-1 ${
@@ -1569,6 +1855,15 @@ const BudgetApp = () => {
           >
             <Wallet className="w-5 h-5" />
             <span className="text-xs">Birikimler</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('ai-assistant')}
+            className={`flex flex-col items-center justify-center gap-1 ${
+              activeTab === 'ai-assistant' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <span className="text-lg">🤖</span>
+            <span className="text-xs">AI Danışman</span>
           </button>
           <button
             onClick={() => setActiveTab('settings')}
