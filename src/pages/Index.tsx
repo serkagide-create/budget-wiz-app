@@ -201,6 +201,87 @@ const BudgetApp = () => {
   const availableDebtFund = Math.max(0, debtFund - usedDebtFund);
   const availableSavingsFund = Math.max(0, savingsFund - usedSavingsFund);
 
+  // Debt Strategy Logic
+  const getSortedDebts = () => {
+    const debtsWithCalculations = debts.map(debt => {
+      const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+      const remaining = debt.totalAmount - totalPaid;
+      const estimatedInterestRate = 15; // Default %15 faiz oranı (gerçek uygulamada kullanıcıdan alınabilir)
+      
+      return {
+        ...debt,
+        totalPaid,
+        remaining,
+        estimatedInterestRate,
+        isCompleted: remaining <= 0
+      };
+    });
+
+    // Tamamlanmamış borçları filtrele
+    const activeDebts = debtsWithCalculations.filter(debt => !debt.isCompleted);
+
+    if (settings.debtStrategy === 'snowball') {
+      // Borç Kartopu: En küçük kalan tutardan başla
+      return activeDebts.sort((a, b) => a.remaining - b.remaining);
+    } else {
+      // Borç Çığ: En yüksek faiz oranından başla
+      return activeDebts.sort((a, b) => b.estimatedInterestRate - a.estimatedInterestRate);
+    }
+  };
+
+  // Smart Assistant Recommendations
+  const getSmartRecommendations = () => {
+    const sortedDebts = getSortedDebts();
+    const recommendations = [];
+
+    if (sortedDebts.length === 0) {
+      recommendations.push({
+        type: 'success',
+        message: '🎉 Tebrikler! Tüm borçlarınızı ödemeyi tamamladınız!',
+        action: null
+      });
+      return recommendations;
+    }
+
+    if (availableDebtFund <= 0) {
+      recommendations.push({
+        type: 'warning',
+        message: '⚠️ Borç fonu yetersiz. Gelir ekleyerek borç fonunu artırın.',
+        action: 'addIncome'
+      });
+      return recommendations;
+    }
+
+    const priorityDebt = sortedDebts[0];
+    const strategyName = settings.debtStrategy === 'snowball' ? 'Borç Kartopu' : 'Borç Çığ';
+    
+    if (settings.debtStrategy === 'snowball') {
+      recommendations.push({
+        type: 'info',
+        message: `⚡ ${strategyName} stratejisi: "${priorityDebt.description}" borcunu öncelikle ödeyin (Kalan: ${formatCurrency(priorityDebt.remaining)})`,
+        action: { type: 'payDebt', debtId: priorityDebt.id }
+      });
+    } else {
+      recommendations.push({
+        type: 'info',
+        message: `🏔️ ${strategyName} stratejisi: En yüksek faizli "${priorityDebt.description}" borcunu öncelikle ödeyin (Faiz: %${priorityDebt.estimatedInterestRate})`,
+        action: { type: 'payDebt', debtId: priorityDebt.id }
+      });
+    }
+
+    // Fazladan ödeme önerisi
+    const suggestedPayment = Math.min(availableDebtFund, priorityDebt.remaining);
+    if (suggestedPayment > 0) {
+      recommendations.push({
+        type: 'suggestion',
+        message: `💡 Öneri: "${priorityDebt.description}" için ${formatCurrency(suggestedPayment)} ödeme yapabilirsiniz.`,
+        action: { type: 'suggestPayment', debtId: priorityDebt.id, amount: suggestedPayment }
+      });
+    }
+
+    return recommendations;
+  };
+
   // Income Functions
   const addIncome = () => {
     if (!incomeForm.description.trim() || !incomeForm.amount || !incomeForm.category) {
@@ -538,89 +619,151 @@ const BudgetApp = () => {
   };
 
   // Render Functions
-  const renderDashboard = () => (
-    <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="bg-gradient-income border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-income-foreground/80">Toplam Gelir</p>
-                <p className="text-xl font-bold text-income-foreground">
-                  {formatCurrency(totalIncome)}
-                </p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-income-foreground/60" />
-            </div>
-          </CardContent>
-        </Card>
+  const renderDashboard = () => {
+    const recommendations = getSmartRecommendations();
+    
+    return (
+      <div className="space-y-4">
+        {/* Smart Assistant Recommendations */}
+        {recommendations.length > 0 && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                🤖 Akıllı Asistan
+                <Badge variant="secondary" className="text-xs">
+                  {settings.debtStrategy === 'snowball' ? '⚡ Kartopu' : '🏔️ Çığ'} Stratejisi
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recommendations.map((rec, index) => (
+                <div 
+                  key={index}
+                  className={`p-3 rounded-lg border ${
+                    rec.type === 'success' ? 'bg-income/10 border-income/20' :
+                    rec.type === 'warning' ? 'bg-destructive/10 border-destructive/20' :
+                    rec.type === 'suggestion' ? 'bg-primary/10 border-primary/20' :
+                    'bg-muted/50 border-muted'
+                  }`}
+                >
+                  <p className="text-sm">{rec.message}</p>
+                  {rec.action && rec.action.type === 'suggestPayment' && (
+                    <Button 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => {
+                        const amount = rec.action.amount;
+                        const debtId = rec.action.debtId;
+                        
+                        const newPayment = {
+                          id: Date.now().toString(),
+                          amount: amount,
+                          date: new Date().toISOString()
+                        };
 
-        <Card className="bg-gradient-expense border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-expense-foreground/80">Borç Fonu (%{settings.debtPercentage})</p>
-                <p className="text-xl font-bold text-expense-foreground">
-                  {formatCurrency(availableDebtFund)}
-                </p>
-              </div>
-              <Target className="w-8 h-8 text-expense-foreground/60" />
-            </div>
-          </CardContent>
-        </Card>
+                        setDebts(prev => prev.map(d => 
+                          d.id === debtId 
+                            ? { ...d, payments: [newPayment, ...d.payments] }
+                            : d
+                        ));
 
-        <Card className="bg-gradient-savings border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-savings-foreground/80">Birikim Fonu (%{settings.savingsPercentage})</p>
-                <p className="text-xl font-bold text-savings-foreground">
-                  {formatCurrency(availableSavingsFund)}
-                </p>
+                        toast({ 
+                          title: "Ödeme Yapıldı", 
+                          description: `${formatCurrency(amount)} ödeme eklendi` 
+                        });
+                      }}
+                    >
+                      Önerilen Ödemeyi Yap ({formatCurrency(rec.action.amount)})
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card className="bg-gradient-income border-0">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-income-foreground/80">Toplam Gelir</p>
+                  <p className="text-xl font-bold text-income-foreground">
+                    {formatCurrency(totalIncome)}
+                  </p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-income-foreground/60" />
               </div>
-              <Wallet className="w-8 h-8 text-savings-foreground/60" />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-expense border-0">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-expense-foreground/80">Borç Fonu (%{settings.debtPercentage})</p>
+                  <p className="text-xl font-bold text-expense-foreground">
+                    {formatCurrency(availableDebtFund)}
+                  </p>
+                </div>
+                <Target className="w-8 h-8 text-expense-foreground/60" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-savings border-0">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-savings-foreground/80">Birikim Fonu (%{settings.savingsPercentage})</p>
+                  <p className="text-xl font-bold text-savings-foreground">
+                    {formatCurrency(availableSavingsFund)}
+                  </p>
+                </div>
+                <Wallet className="w-8 h-8 text-savings-foreground/60" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button 
+            onClick={() => setActiveTab('incomes')} 
+            className="h-16 text-left justify-start"
+            variant="outline"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-income/10 p-2 rounded-lg">
+                <PlusCircle className="w-5 h-5 text-income" />
+              </div>
+              <div>
+                <p className="font-medium">Gelir Ekle</p>
+                <p className="text-sm text-muted-foreground">{incomes.length} kayıt</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </Button>
+
+          <Button 
+            onClick={() => setActiveTab('debts')} 
+            className="h-16 text-left justify-start"
+            variant="outline"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-expense/10 p-2 rounded-lg">
+                <Target className="w-5 h-5 text-expense" />
+              </div>
+              <div>
+                <p className="font-medium">Borç Yönet</p>
+                <p className="text-sm text-muted-foreground">{debts.length} borç</p>
+              </div>
+            </div>
+          </Button>
+        </div>
       </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button 
-          onClick={() => setActiveTab('incomes')} 
-          className="h-16 text-left justify-start"
-          variant="outline"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-income/10 p-2 rounded-lg">
-              <PlusCircle className="w-5 h-5 text-income" />
-            </div>
-            <div>
-              <p className="font-medium">Gelir Ekle</p>
-              <p className="text-sm text-muted-foreground">{incomes.length} kayıt</p>
-            </div>
-          </div>
-        </Button>
-
-        <Button 
-          onClick={() => setActiveTab('debts')} 
-          className="h-16 text-left justify-start"
-          variant="outline"
-        >
-          <div className="flex items-center gap-3">
-            <div className="bg-expense/10 p-2 rounded-lg">
-              <Target className="w-5 h-5 text-expense" />
-            </div>
-            <div>
-              <p className="font-medium">Borç Yönet</p>
-              <p className="text-sm text-muted-foreground">{debts.length} borç</p>
-            </div>
-          </div>
-        </Button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderIncomes = () => (
     <div className="space-y-4">
@@ -718,9 +861,35 @@ const BudgetApp = () => {
 
   const renderDebts = () => {
     const totalDebtAmount = debts.reduce((sum, debt) => sum + debt.totalAmount, 0);
+    const sortedDebts = getSortedDebts();
     
     return (
       <div className="space-y-4">
+        {/* Debt Strategy Info */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Aktif Strateji:</p>
+                <p className="text-sm text-muted-foreground">
+                  {settings.debtStrategy === 'snowball' 
+                    ? '⚡ Borç Kartopu - En küçük borçtan başla' 
+                    : '🏔️ Borç Çığ - En yüksek faizli borçtan başla'
+                  }
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setActiveTab('settings')}
+              >
+                <Settings className="w-4 h-4 mr-1" />
+                Değiştir
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Debt Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Card className="bg-gradient-expense border-0">
@@ -791,6 +960,29 @@ const BudgetApp = () => {
         </CardContent>
       </Card>
 
+      {/* Priority Order Info */}
+      {sortedDebts.length > 0 && (
+        <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-primary/20 p-1 rounded">
+                {settings.debtStrategy === 'snowball' ? '⚡' : '🏔️'}
+              </div>
+              <span className="font-medium text-sm">
+                {settings.debtStrategy === 'snowball' ? 'Kartopu Sırası' : 'Çığ Sırası'}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              📍 <strong>Öncelik:</strong> {sortedDebts[0]?.description} 
+              {settings.debtStrategy === 'snowball' 
+                ? ` (En düşük borç: ${formatCurrency(sortedDebts[0]?.remaining)})`
+                : ` (En yüksek faiz: %${sortedDebts[0]?.estimatedInterestRate})`
+              }
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Debt List */}
       {debts.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -798,7 +990,8 @@ const BudgetApp = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {debts.map((debt) => {
+          {/* First show sorted debts according to strategy */}
+          {sortedDebts.map((debt, index) => {
             const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
             const remaining = debt.totalAmount - totalPaid;
             const progress = (totalPaid / debt.totalAmount) * 100;
@@ -824,15 +1017,24 @@ const BudgetApp = () => {
                   <div className="space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium">{debt.description}</h3>
-                          {isWarning && (
-                            <Badge variant="destructive" className="text-xs">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              {warningText}
-                            </Badge>
-                          )}
-                        </div>
+                         <div className="flex items-center gap-2">
+                           {/* Priority indicator */}
+                           <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                             index === 0 ? 'bg-primary/20 text-primary font-medium' : 
+                             index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
+                             'bg-muted/30 text-muted-foreground'
+                           }`}>
+                             {index === 0 ? '🎯 Öncelik #1' : `#${index + 1}`}
+                           </div>
+                           
+                           <h3 className="font-medium">{debt.description}</h3>
+                           {isWarning && (
+                             <Badge variant="destructive" className="text-xs">
+                               <AlertTriangle className="w-3 h-3 mr-1" />
+                               {warningText}
+                             </Badge>
+                           )}
+                         </div>
                         <p className="text-sm text-muted-foreground">
                           {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
                         </p>
@@ -917,6 +1119,65 @@ const BudgetApp = () => {
               </Card>
             );
           })}
+          
+          {/* Show completed debts separately */}
+          {debts.filter(debt => {
+            const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+            return totalPaid >= debt.totalAmount;
+          }).length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 border-t border-muted"></div>
+                <span className="text-sm text-muted-foreground">Tamamlanan Borçlar</span>
+                <div className="flex-1 border-t border-muted"></div>
+              </div>
+              
+              {debts.filter(debt => {
+                const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+                return totalPaid >= debt.totalAmount;
+              }).map((debt) => {
+                const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+                const progress = (totalPaid / debt.totalAmount) * 100;
+
+                return (
+                  <Card key={debt.id} className="opacity-75 border-income/20">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-income/20 text-income text-xs px-2 py-1 rounded font-medium">
+                                ✅ Tamamlandı
+                              </div>
+                              <h3 className="font-medium">{debt.description}</h3>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteDebt(debt.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>İlerleme (100%)</span>
+                            <span>{formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}</span>
+                          </div>
+                          <Progress value={100} className="h-2" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
