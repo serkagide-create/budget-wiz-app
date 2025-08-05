@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,11 @@ import {
   DollarSign,
   Sun,
   Moon,
-  Check
+  Check,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 // TypeScript Interface Definitions
@@ -150,6 +154,14 @@ const BudgetApp = () => {
   const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'assistant', message: string, timestamp: Date}>>([]);
   const [chatInput, setChatInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Voice Assistant State
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [elevenlabsApiKey, setElevenlabsApiKey] = useState('');
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const synthRef = useRef<any>(null);
 
   // Form States
   const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false });
@@ -197,12 +209,55 @@ const BudgetApp = () => {
     ]));
   }, []);
 
+  // Initialize voice recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+      recognitionRef.current = new (window as any).webkitSpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'tr-TR';
+      
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('Sesli komut algılandı:', transcript);
+        handleVoiceCommand(transcript);
+      };
+      
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Ses tanıma hatası:', event.error);
+        setIsListening(false);
+        toast({
+          title: "Ses Tanıma Hatası",
+          description: "Ses tanıma sırasında bir hata oluştu.",
+          variant: "destructive"
+        });
+      };
+    }
+    
+    // Initialize speech synthesis
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+    
+    // Load saved ElevenLabs API key
+    const savedApiKey = loadFromStorage('elevenlabs_api_key', '');
+    if (savedApiKey) {
+      setElevenlabsApiKey(savedApiKey);
+      setVoiceEnabled(true);
+    }
+  }, []);
+
   // Save data when state changes
   useEffect(() => { saveToStorage('budgetApp_incomes', incomes); }, [incomes]);
   useEffect(() => { saveToStorage('budgetApp_debts', debts); }, [debts]);
   useEffect(() => { saveToStorage('budgetApp_savingGoals', savingGoals); }, [savingGoals]);
   useEffect(() => { saveToStorage('budgetApp_settings', settings); }, [settings]);
   useEffect(() => { saveToStorage('budgetApp_chatMessages', chatMessages); }, [chatMessages]);
+  useEffect(() => { saveToStorage('elevenlabs_api_key', elevenlabsApiKey); }, [elevenlabsApiKey]);
 
   // Calculations
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
@@ -327,6 +382,208 @@ const BudgetApp = () => {
       availableDebtFund,
       availableSavingsFund
     };
+  };
+
+  // Helper function to add chat message
+  const addChatMessage = (type: 'user' | 'assistant', message: string) => {
+    const newMessage = {
+      id: Date.now().toString() + '_' + type,
+      type,
+      message,
+      timestamp: new Date()
+    };
+    setChatMessages(prev => [...prev, newMessage]);
+  };
+
+  // Helper function to make payment
+  const makePayment = (debtId: string, amount: number) => {
+    const debt = debts.find(d => d.id === debtId);
+    if (!debt) return;
+
+    const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const remaining = debt.totalAmount - totalPaid;
+    const paymentAmount = Math.min(amount, remaining);
+
+    if (paymentAmount <= 0) return;
+
+    const newPayment: Payment = {
+      id: Date.now().toString(),
+      amount: paymentAmount,
+      date: new Date().toISOString()
+    };
+
+    setDebts(prev => prev.map(d => 
+      d.id === debtId 
+        ? { ...d, payments: [newPayment, ...d.payments] }
+        : d
+    ));
+
+    toast({ 
+      title: "Ödeme Başarılı", 
+      description: `${formatCurrency(paymentAmount)} ödeme yapıldı` 
+    });
+  };
+
+  // Add income function (overloaded for both form and direct usage)
+  const addIncomeData = (incomeData: Omit<Income, 'id'>) => {
+    const newIncome: Income = {
+      id: Date.now().toString(),
+      ...incomeData
+    };
+    setIncomes(prev => [newIncome, ...prev]);
+    toast({ title: "Başarılı", description: "Gelir eklendi" });
+  };
+
+  // Voice Command Handler
+  const handleVoiceCommand = async (transcript: string) => {
+    const lowerTranscript = transcript.toLowerCase();
+    console.log('İşlenen sesli komut:', lowerTranscript);
+    
+    // Gelir ekleme komutları
+    if (lowerTranscript.includes('gelir') && (lowerTranscript.includes('bin') || lowerTranscript.includes('lira') || /\d+/.test(lowerTranscript))) {
+      const amountMatch = lowerTranscript.match(/(\d+)\s*(bin|lira)/);
+      if (amountMatch) {
+        let amount = parseInt(amountMatch[1]);
+        if (amountMatch[2] === 'bin') {
+          amount = amount * 1000;
+        }
+        
+        // Gelir ekle
+        addIncomeData({
+          description: 'Sesli komutla eklenen gelir',
+          amount: amount,
+          date: new Date().toISOString(),
+          category: 'Maaş',
+          monthlyRepeat: true
+        });
+        
+        const response = `${formatCurrency(amount)} gelir başarıyla eklendi! Toplam geliriniz şimdi ${formatCurrency(totalIncome + amount)} oldu.`;
+        addChatMessage('assistant', response);
+        if (voiceEnabled) {
+          await speakText(response);
+        }
+        return;
+      }
+    }
+    
+    // Ödeme komutları
+    if ((lowerTranscript.includes('öde') || lowerTranscript.includes('ödeme')) && (lowerTranscript.includes('bin') || lowerTranscript.includes('lira') || /\d+/.test(lowerTranscript))) {
+      const amountMatch = lowerTranscript.match(/(\d+)\s*(bin|lira)/);
+      if (amountMatch) {
+        let amount = parseInt(amountMatch[1]);
+        if (amountMatch[2] === 'bin') {
+          amount = amount * 1000;
+        }
+        
+        // En yüksek öncelikli borcu bul
+        const sortedDebts = getSortedDebts();
+        if (sortedDebts.length > 0) {
+          const targetDebt = sortedDebts[0];
+          makePayment(targetDebt.id, amount);
+          
+          const response = `${formatCurrency(amount)} ödeme ${targetDebt.description} borcuna yapıldı! Kalan borç: ${formatCurrency(Math.max(0, targetDebt.remaining - amount))}`;
+          addChatMessage('assistant', response);
+          if (voiceEnabled) {
+            await speakText(response);
+          }
+        } else {
+          const response = 'Ödeme yapılacak aktif borç bulunamadı.';
+          addChatMessage('assistant', response);
+          if (voiceEnabled) {
+            await speakText(response);
+          }
+        }
+        return;
+      }
+    }
+    
+    // Diğer sesli komutları normal chat olarak işle
+    addChatMessage('user', transcript);
+    const response = generateAIResponse(transcript);
+    addChatMessage('assistant', response);
+    if (voiceEnabled) {
+      await speakText(response);
+    }
+  };
+
+  // Text-to-Speech Functions
+  const speakText = async (text: string) => {
+    if (!voiceEnabled || !elevenlabsApiKey) {
+      // Fallback to browser speech synthesis
+      if (synthRef.current) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'tr-TR';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        synthRef.current.speak(utterance);
+      }
+      return;
+    }
+
+    try {
+      setIsSpeaking(true);
+      
+      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/9BWtsMINqrJLrRacOk9x', {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': elevenlabsApiKey
+        },
+        body: JSON.stringify({
+          text: text,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.5
+          }
+        })
+      });
+
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        audio.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        
+        audio.play();
+      } else {
+        console.error('ElevenLabs API hatası:', response.status);
+        // Fallback to browser speech synthesis
+        if (synthRef.current) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'tr-TR';
+          synthRef.current.speak(utterance);
+        }
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error('Ses sentezi hatası:', error);
+      setIsSpeaking(false);
+    }
+  };
+
+  // Voice Controls
+  const startListening = () => {
+    if (recognitionRef.current && !isListening) {
+      setIsListening(true);
+      recognitionRef.current.start();
+      toast({
+        title: "Ses Tanıma Başladı",
+        description: "Sesli komutunuzu söyleyebilirsiniz...",
+      });
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
   };
 
   const generateAIResponse = (userMessage: string) => {
@@ -599,19 +856,16 @@ const BudgetApp = () => {
       nextIncomeDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
     }
 
-    const newIncome: Income = {
-      id: Date.now().toString(),
+    addIncomeData({
       description: incomeForm.description.trim(),
       amount: parseFloat(incomeForm.amount),
       date: new Date().toISOString(),
       category: incomeForm.category,
       monthlyRepeat: incomeForm.monthlyRepeat,
       nextIncomeDate: nextIncomeDate?.toISOString()
-    };
+    });
 
-    setIncomes(prev => [newIncome, ...prev]);
     setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false });
-    toast({ title: "Başarılı", description: "Gelir eklendi" });
   };
 
   const deleteIncome = (id: string) => {
@@ -924,18 +1178,89 @@ const BudgetApp = () => {
   // AI Assistant Render Function
   const renderAIAssistant = () => (
     <div className="space-y-4">
+      {/* Voice Settings Card */}
+      {!voiceEnabled && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Volume2 className="w-5 h-5 text-amber-600" />
+                <p className="font-medium text-amber-800">Sesli Asistan Kurulumu</p>
+              </div>
+              <p className="text-sm text-amber-700">
+                Sesli komutlar ve yanıtlar için ElevenLabs API anahtarınızı girin:
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="ElevenLabs API Anahtarı"
+                  value={elevenlabsApiKey}
+                  onChange={(e) => setElevenlabsApiKey(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => {
+                    if (elevenlabsApiKey.trim()) {
+                      setVoiceEnabled(true);
+                      toast({
+                        title: "Sesli Asistan Aktif",
+                        description: "Artık sesli komutlar kullanabilirsiniz!"
+                      });
+                    }
+                  }}
+                  disabled={!elevenlabsApiKey.trim()}
+                >
+                  Aktifleştir
+                </Button>
+              </div>
+              <div className="text-xs text-amber-600">
+                API anahtarınızı <a href="https://elevenlabs.io" target="_blank" className="underline">elevenlabs.io</a> üzerinden alabilirsiniz.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* AI Chat Interface */}
       <Card className="h-96 flex flex-col">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               🤖 AI Finansal Danışman
-              <Badge variant="secondary" className="text-xs">Beta</Badge>
+              <Badge variant="secondary" className="text-xs">
+                {voiceEnabled ? '🎤 Sesli' : 'Metin'}
+              </Badge>
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={clearChat}>
-              Temizle
-            </Button>
+            <div className="flex items-center gap-2">
+              {voiceEnabled && (
+                <>
+                  <Button
+                    variant={isListening ? "destructive" : "secondary"}
+                    size="sm"
+                    onClick={isListening ? stopListening : startListening}
+                    disabled={isSpeaking}
+                  >
+                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  </Button>
+                  {isSpeaking && (
+                    <div className="flex items-center gap-1 text-sm text-primary">
+                      <Volume2 className="w-4 h-4 animate-pulse" />
+                      <span>Konuşuyor...</span>
+                    </div>
+                  )}
+                </>
+              )}
+              <Button variant="ghost" size="sm" onClick={clearChat}>
+                Temizle
+              </Button>
+            </div>
           </div>
+          {isListening && (
+            <div className="flex items-center gap-2 text-sm text-primary mt-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              Dinliyorum... Sesli komutunuzu söyleyebilirsiniz
+            </div>
+          )}
         </CardHeader>
         
         <CardContent className="flex-1 flex flex-col min-h-0">
@@ -976,7 +1301,7 @@ const BudgetApp = () => {
           {/* Chat Input */}
           <div className="flex gap-2">
             <Input
-              placeholder="Finansal durumum nasıl? Yatırım önerisi ver..."
+              placeholder={voiceEnabled ? "Yazın veya sesli komut verin: 'Gelirım 50 bin', 'Kredi kartına 10 bin öde'..." : "Finansal durumum nasıl? Yatırım önerisi ver..."}
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyPress={(e) => {
@@ -984,11 +1309,22 @@ const BudgetApp = () => {
                   handleChatSubmit();
                 }
               }}
-              disabled={isProcessing}
+              disabled={isProcessing || isListening}
             />
+            {voiceEnabled && (
+              <Button
+                variant={isListening ? "destructive" : "secondary"}
+                size="sm"
+                onClick={isListening ? stopListening : startListening}
+                disabled={isSpeaking || isProcessing}
+                title={isListening ? "Ses tanımayı durdur" : "Sesli komut ver"}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+            )}
             <Button 
               onClick={handleChatSubmit} 
-              disabled={!chatInput.trim() || isProcessing}
+              disabled={!chatInput.trim() || isProcessing || isListening}
               size="sm"
             >
               Gönder
@@ -1000,7 +1336,7 @@ const BudgetApp = () => {
       {/* Quick Questions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">💡 Hızlı Sorular</CardTitle>
+          <CardTitle className="text-lg">💡 Hızlı Sorular & Sesli Komut Örnekleri</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1019,12 +1355,27 @@ const BudgetApp = () => {
                   setChatInput(question);
                   setTimeout(() => handleChatSubmit(), 100);
                 }}
-                disabled={isProcessing}
+                disabled={isProcessing || isListening}
               >
                 <div className="text-sm">{question}</div>
               </Button>
             ))}
           </div>
+          
+          {voiceEnabled && (
+            <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Mic className="w-4 h-4 text-primary" />
+                <span className="font-medium text-sm">Sesli Komut Örnekleri:</span>
+              </div>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>🎙️ <span className="font-medium">"Gelirım 50 bin"</span> - Gelir ekler</div>
+                <div>🎙️ <span className="font-medium">"Kredi kartına 10 bin öde"</span> - Ödeme yapar</div>
+                <div>🎙️ <span className="font-medium">"Gelirım 25 bin lira"</span> - Gelir ekler</div>
+                <div>🎙️ <span className="font-medium">"5 bin ödeme yap"</span> - Öncelikli borcu öder</div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1034,6 +1385,7 @@ const BudgetApp = () => {
           <div className="space-y-2">
             <h3 className="font-medium flex items-center gap-2">
               🚀 AI Danışman Özellikleri
+              {voiceEnabled && <Badge variant="secondary" className="text-xs">🎤 Sesli Aktif</Badge>}
             </h3>
             <div className="text-sm text-muted-foreground space-y-1">
               <div>• Gerçek finansal verilerinizi analiz eder</div>
@@ -1041,6 +1393,12 @@ const BudgetApp = () => {
               <div>• Borç ödeme stratejileri geliştirir</div>
               <div>• Finansal özgürlük için yol haritası çizer</div>
               <div>• Risk analizi ve uyarılar yapar</div>
+              {voiceEnabled && (
+                <>
+                  <div>🎤 <strong>Sesli komutları anlayarak otomatik işlem yapar</strong></div>
+                  <div>🔊 <strong>AI yanıtlarını sesli olarak okur</strong></div>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
