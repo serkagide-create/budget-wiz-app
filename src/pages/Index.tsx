@@ -333,66 +333,215 @@ const BudgetApp = () => {
     const analysis = analyzeFinancialSituation();
     const lowerMessage = userMessage.toLowerCase();
 
+    // Finansal duruma göre akıllı yanıt sistemi
+    const createDetailedFinancialReport = () => {
+      let report = `📊 **DETAYLI FİNANSAL RAPOR**\n\n`;
+      report += `💰 **Gelir Analizi:**\n`;
+      report += `• Toplam Gelir: ${formatCurrency(analysis.totalIncome)}\n`;
+      report += `• Borç Fonu: ${formatCurrency(analysis.availableDebtFund + (debts.reduce((sum, debt) => sum + debt.payments.reduce((paySum, payment) => paySum + payment.amount, 0), 0)))}\n`;
+      report += `• Birikim Fonu: ${formatCurrency(analysis.availableSavingsFund + analysis.totalSavingsProgress)}\n\n`;
+      
+      report += `📉 **Borç Durumu:**\n`;
+      report += `• Kalan Toplam Borç: ${formatCurrency(analysis.totalDebtRemaining)}\n`;
+      report += `• Aktif Borç Sayısı: ${analysis.activeDebts}\n`;
+      report += `• Tamamlanan Borç: ${analysis.completedDebts}\n`;
+      report += `• Borç/Gelir Oranı: %${analysis.debtToIncomeRatio.toFixed(1)}\n\n`;
+      
+      report += `💎 **Yatırım Kapasitesi:**\n`;
+      const monthlyInvestmentCapacity = analysis.availableSavingsFund;
+      const yearlyInvestmentCapacity = monthlyInvestmentCapacity * 12;
+      report += `• Aylık Yatırım Kapasitesi: ${formatCurrency(monthlyInvestmentCapacity)}\n`;
+      report += `• Yıllık Yatırım Kapasitesi: ${formatCurrency(yearlyInvestmentCapacity)}\n\n`;
+      
+      return report;
+    };
+
+    const getStockAnalysis = () => {
+      const stockSuggestions = [
+        { symbol: 'BIST30', name: 'BIST 30 Endeks Fonu', risk: 'Düşük', expectedReturn: '%8-12', reason: 'Türkiye\'nin en büyük 30 şirketine yatırım' },
+        { symbol: 'AKBNK', name: 'Akbank', risk: 'Orta', expectedReturn: '%10-15', reason: 'Güçlü bankacılık sektörü' },
+        { symbol: 'THYAO', name: 'THY', risk: 'Yüksek', expectedReturn: '%15-25', reason: 'Havacılık sektörü toparlanması' },
+        { symbol: 'ASELS', name: 'Aselsan', risk: 'Orta-Yüksek', expectedReturn: '%12-20', reason: 'Savunma sanayi büyümesi' },
+        { symbol: 'TUPRS', name: 'Tüpraş', risk: 'Orta', expectedReturn: '%8-15', reason: 'Enerji sektörü istikrarı' }
+      ];
+
+      let analysis = `📈 **HİSSE SENEDİ ANALİZİ VE ÖNERİLERİ**\n\n`;
+      
+      const analysisData = analyzeFinancialSituation();
+      if (analysisData.totalDebtRemaining > 0) {
+        analysis += `⚠️ **DİKKAT:** ${formatCurrency(analysisData.totalDebtRemaining)} borcunuz var. Yüksek faizli borçları ödemek hisse yatırımından daha karlıdır.\n\n`;
+      }
+
+      analysis += `💡 **ÖRGEV: Hisse seçimi için kriterleri:**\n`;
+      analysis += `• Ö: Öz kaynak karlılığı >%15\n`;
+      analysis += `• R: Risk faktörleri düşük\n`;
+      analysis += `• G: Gelir artışı istikrarlı\n`;
+      analysis += `• E: Enflasyon korumalı sektör\n`;
+      analysis += `• V: Değerleme makul (F/K <15)\n\n`;
+
+      analysis += `🎯 **PORTFÖY ÖNERİLERİ:**\n\n`;
+      stockSuggestions.forEach((stock, index) => {
+        analysis += `${index + 1}. **${stock.symbol} - ${stock.name}**\n`;
+        analysis += `   Risk: ${stock.risk} | Beklenen Getiri: ${stock.expectedReturn}\n`;
+        analysis += `   Neden: ${stock.reason}\n\n`;
+      });
+
+      if (analysisData.availableSavingsFund >= 1000) {
+        analysis += `💰 **SİZE ÖZEL ÖNERİ:**\n`;
+        analysis += `${formatCurrency(analysisData.availableSavingsFund)} kullanılabilir birikim fonunuzla:\n`;
+        analysis += `• %60 BIST30 Endeks Fonu (Güvenli taban)\n`;
+        analysis += `• %25 Bankacılık sektörü (AKBNK, ISCTR)\n`;
+        analysis += `• %15 Teknoloji/Savunma (ASELS, LOGO)\n\n`;
+      }
+
+      analysis += `⚡ **YATIRIM STRATEJİSİ:**\n`;
+      analysis += `• Aylık düzenli yatırım yapın (DCA stratejisi)\n`;
+      analysis += `• Sektör çeşitlendirmesi sağlayın\n`;
+      analysis += `• Uzun vadeli (3+ yıl) düşünün\n`;
+      analysis += `• %10'dan fazla düşüşlerde alım yapın\n`;
+      analysis += `• Kâr realizasyonu %20-30'da değerlendirin\n\n`;
+
+      return analysis;
+    };
+
+    const getAdvancedInvestmentAdvice = () => {
+      let advice = `🚀 **İLERİ SEVİYE YATIRIM REHBERİ**\n\n`;
+      
+      advice += `📊 **PORTFÖY ALOKASYONİ (Yaşa Göre):**\n`;
+      advice += `• 20-30 yaş: %70 Hisse, %20 Tahvil, %10 Altın\n`;
+      advice += `• 30-40 yaş: %60 Hisse, %30 Tahvil, %10 Emtia\n`;
+      advice += `• 40-50 yaş: %50 Hisse, %40 Tahvil, %10 Emlak\n`;
+      advice += `• 50+ yaş: %40 Hisse, %50 Tahvil, %10 Nakit\n\n`;
+
+      advice += `💎 **YATIRIM ARAÇLARI:**\n\n`;
+      advice += `🏦 **Düşük Risk (%4-8 getiri):**\n`;
+      advice += `• Devlet İç Borçlanma Senetleri (DİBS)\n`;
+      advice += `• Bankacılık BYF fonları\n`;
+      advice += `• Eurobond fonları\n`;
+      advice += `• Altın (hedge amaçlı)\n\n`;
+
+      advice += `📈 **Orta Risk (%8-15 getiri):**\n`;
+      advice += `• BIST endeks fonları (BIST30, BIST100)\n`;
+      advice += `• Karma BYF fonları\n`;
+      advice += `• Emlak sertifikaları (GYO)\n`;
+      advice += `• Şirket tahvilleri\n\n`;
+
+      advice += `⚡ **Yüksek Risk (%15+ getiri potansiyeli):**\n`;
+      advice += `• Bireysel hisse senetleri\n`;
+      advice += `• Teknoloji fonları\n`;
+      advice += `• Emerging market fonları\n`;
+      advice += `• Crypto (portföyün max %5'i)\n\n`;
+
+      advice += `🎯 **SEKTÖR ANALİZİ:**\n`;
+      advice += `• Bankacılık: Faiz artışlarından faydalanır\n`;
+      advice += `• Teknoloji: Uzun vadeli büyüme potansiyeli\n`;
+      advice += `• Sağlık: Nüfus yaşlanmasıyla büyüme\n`;
+      advice += `• Enerji: Yeşil dönüşüm fırsatları\n`;
+      advice += `• Emlak: Enflasyon korunması\n\n`;
+
+      return advice;
+    };
+
     // Finansal durum analizi
-    if (lowerMessage.includes('finansal durum') || lowerMessage.includes('durum nasıl') || lowerMessage.includes('analiz')) {
+    if (lowerMessage.includes('finansal durum') || lowerMessage.includes('durum nasıl') || lowerMessage.includes('analiz') || lowerMessage.includes('rapor')) {
       if (analysis.totalIncome === 0) {
         return '💡 Henüz gelir kaydınız bulunmuyor. Finansal analiz için öncelikle gelirlerinizi eklemenizi öneririm. Gelirler sekmesinden başlayabilirsiniz.';
       }
 
-      let response = `📊 **Finansal Durum Analizi:**\n\n`;
-      response += `💰 Toplam Gelir: ${formatCurrency(analysis.totalIncome)}\n`;
-      response += `📉 Kalan Borç: ${formatCurrency(analysis.totalDebtRemaining)}\n`;
-      response += `💳 Aktif Borç: ${analysis.activeDebts} adet\n`;
-      response += `✅ Tamamlanan Borç: ${analysis.completedDebts} adet\n`;
-      response += `🎯 Tamamlanan Hedef: ${analysis.completedGoals} adet\n\n`;
+      let response = createDetailedFinancialReport();
 
       if (analysis.debtToIncomeRatio > 50) {
-        response += `⚠️ **Dikkat:** Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Bu oran %30'un altında olmalı. Borç ödeme stratejinizi gözden geçirin.`;
+        response += `🚨 **ACİL DURUM:** Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Kritik seviyede!\n`;
+        response += `• Gelir artırıcı yan işler arayın\n• Gereksiz harcamaları durdurun\n• Borç konsolidasyonu düşünün\n• Finansal danışman desteği alın\n\n`;
       } else if (analysis.debtToIncomeRatio > 30) {
-        response += `⚡ Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Kabul edilebilir seviyede ancak iyileştirilebilir.`;
+        response += `⚠️ **DİKKAT:** Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - İyileştirme gerekli.\n\n`;
       } else {
-        response += `✅ Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Sağlıklı bir seviyede!`;
+        response += `✅ **TEBRİKLER:** Borç-Gelir oranınız %${analysis.debtToIncomeRatio.toFixed(1)} - Sağlıklı seviyede!\n\n`;
+      }
+
+      // Risk profili analizi
+      response += `🎯 **RİSK PROFİLİ DEĞERLENDİRME:**\n`;
+      if (analysis.availableSavingsFund > analysis.totalIncome * 0.5) {
+        response += `• Agresif yatırımcı: Yüksek getiri arayabilirsiniz\n`;
+      } else if (analysis.availableSavingsFund > analysis.totalIncome * 0.2) {
+        response += `• Orta riskli yatırımcı: Dengeli portföy uygun\n`;
+      } else {
+        response += `• Konservatif yatırımcı: Güvenli yatırımlar öncelik\n`;
       }
 
       return response;
     }
 
-    // Yatırım önerileri
+    // Hisse senedi ve ileri seviye yatırım analizi
+    if (lowerMessage.includes('hisse') || lowerMessage.includes('borsa') || lowerMessage.includes('yatırım analiz') || 
+        lowerMessage.includes('portföy') || lowerMessage.includes('yatırım öner') || lowerMessage.includes('hangi hisse')) {
+      
+      let response = getStockAnalysis();
+      response += getAdvancedInvestmentAdvice();
+      
+      return response;
+    }
+
+    // Genel yatırım önerileri
     if (lowerMessage.includes('yatırım') || lowerMessage.includes('invest')) {
       if (analysis.totalDebtRemaining > 0) {
-        return `💡 **Yatırım Önerisi:** Öncelikle borçlarınızı ödemenizi öneririm. ${formatCurrency(analysis.totalDebtRemaining)} toplam borcunuz var. Yüksek faizli borçlar yatırım getirilerinden daha zararlıdır.\n\n✅ Borçlarınızı ödedikten sonra şu yatırım seçeneklerini değerlendirebilirsiniz:\n• Bireysel Emeklilik (BES)\n• Altın/Döviz (portföyün %10-20'si)\n• Borsa İstanbul hisse senetleri\n• Tahvil ve bono yatırımları`;
+        return `💡 **ÖNCE BORÇ ÖDE:** ${formatCurrency(analysis.totalDebtRemaining)} toplam borcunuz var. Yüksek faizli borçlar yatırım getirilerinden daha zararlıdır.\n\n${getAdvancedInvestmentAdvice()}`;
       }
 
       if (analysis.availableSavingsFund < 10000) {
-        return `💰 Acil durum fonu oluşturmaya odaklanın. En az 3-6 aylık gideri karşılayacak kadar birikim yapın. Şu an ${formatCurrency(analysis.availableSavingsFund)} kullanılabilir birikim fonunuz var.`;
+        return `💰 **ACİL DURUM FONU:** Önce ${formatCurrency(10000 - analysis.availableSavingsFund)} daha biriktirip acil durum fonu tamamlayın.\n\n${getAdvancedInvestmentAdvice()}`;
       }
 
-      return `💎 **Yatırım Önerileri:**\n\n🏦 **Düşük Risk:**\n• Devlet tahvilleri (%40-50)\n• Banka mevduatı (%20-30)\n\n📈 **Orta Risk:**\n• BİST-30 endeks fonu (%20-30)\n• Karma yatırım fonları (%10-20)\n\n⚡ **Yüksek Risk:**\n• Bireysel hisse senetleri (%5-10)\n• Kripto para (%2-5)\n\nRisk seviyenize göre portföy oluşturun!`;
+      return getAdvancedInvestmentAdvice();
     }
 
     // Kumar uyarısı
     if (lowerMessage.includes('kumar') || lowerMessage.includes('bahis') || lowerMessage.includes('şans oyun')) {
-      return `🚫 **UYARI:** Kumar finansal özgürlüğün tam karşıtıdır!\n\n💔 Kumar:\n• %95 oranında kayba neden olur\n• Bağımlılık yaratır\n• Finansal planları yok eder\n\n✅ **Bunun yerine:**\n• Borçlarınızı ödeyin\n• Acil durum fonu oluşturun\n• Eğitime yatırım yapın\n• Sağlıklı yatırım araçlarını kullanın\n\nFinansal özgürlük kumar ile değil, disiplin ve sabırla gelir! 💪`;
+      return `🚫 **KUMAR = FİNANSAL İNTİHAR**\n\n💔 **İstatistikler:**\n• Kumar oynayanların %97'si para kaybeder\n• Ortalama kayıp: Aylık gelirin %40'ı\n• Bağımlılık oranı: %15\n\n✅ **AKILLI ALTERNATİFLER:**\n• Borçlarınızı ödeyin (%100 garantili getiri)\n• BIST30 endeks fonu (tarihi ortalama %12)\n• Altın yatırımı (enflasyon korunması)\n• Emlak yatırımı (kira geliri)\n• Eğitime yatırım (gelir artışı)\n\n💪 **GERÇEK FORMULA:** Disiplin + Sabır + Akıllı Yatırım = Finansal Özgürlük`;
     }
 
     // Borç yönetimi
     if (lowerMessage.includes('borç') || lowerMessage.includes('debt')) {
       if (analysis.activeDebts === 0) {
-        return `🎉 Tebrikler! Aktif borcunuz bulunmuyor. Şimdi birikim ve yatırıma odaklanabilirsiniz. Öncelikle acil durum fonu oluşturun.`;
+        return `🎉 **BORÇSUZ YAŞAM!** Tebrikler! Şimdi yatırım zamanı.\n\n${getAdvancedInvestmentAdvice()}`;
       }
 
       const strategy = settings.debtStrategy === 'snowball' ? 'Borç Kartopu (en küçük borçtan başla)' : 'Borç Çığ (en yüksek faizden başla)';
       
-      return `💳 **Borç Yönetimi Önerileri:**\n\n📊 Mevcut Durum:\n• ${analysis.activeDebts} aktif borç\n• ${formatCurrency(analysis.totalDebtRemaining)} toplam borç\n• ${formatCurrency(analysis.availableDebtFund)} kullanılabilir borç fonu\n\n⚡ Strateji: ${strategy}\n\n💡 **Öneriler:**\n• Minimum ödemeleri aksatmayın\n• Fazla parayı öncelikli borca yönlendirin\n• Yeni borç almaktan kaçının\n• Gelir artırıcı aktivitelere yönelin`;
+      let response = `💳 **BORÇ YÖNETİM MASTERPLAN:**\n\n`;
+      response += `📊 **Mevcut Durum:**\n• ${analysis.activeDebts} aktif borç\n• ${formatCurrency(analysis.totalDebtRemaining)} toplam borç\n• ${formatCurrency(analysis.availableDebtFund)} kullanılabilir fonu\n\n`;
+      response += `⚡ **Aktif Strateji:** ${strategy}\n\n`;
+      response += `🎯 **BORÇ ÖDEME HACK'LERİ:**\n`;
+      response += `• Kredi kartlarını tek seferde kapatın\n`;
+      response += `• Taksitli alışverişi durdurun\n`;
+      response += `• Yan gelir kaynaklarını borca yönlendirin\n`;
+      response += `• Borç transferi ile faiz düşürün\n`;
+      response += `• 50/30/20 kuralını uygulayın\n\n`;
+      response += `⏰ **BORÇ ÖZGÜRLÜK TAKVİMİ:**\n`;
+      
+      const monthlyPayment = analysis.availableDebtFund;
+      const monthsToFreedom = monthlyPayment > 0 ? Math.ceil(analysis.totalDebtRemaining / monthlyPayment) : 0;
+      response += `• Mevcut tempo ile ${monthsToFreedom} ayda borçsuz\n`;
+      response += `• %20 fazla ödeme ile ${Math.ceil(monthsToFreedom * 0.8)} ayda borçsuz\n`;
+      response += `• Yan gelir +${formatCurrency(1000)} ile ${Math.ceil(analysis.totalDebtRemaining / (monthlyPayment + 1000))} ayda borçsuz\n\n`;
+      
+      return response;
+    }
+
+    // Araştırma ve rapor talepleri
+    if (lowerMessage.includes('araştır') || lowerMessage.includes('rapor') || lowerMessage.includes('analiz yap') || 
+        lowerMessage.includes('incele') || lowerMessage.includes('detay')) {
+      return createDetailedFinancialReport() + getAdvancedInvestmentAdvice();
     }
 
     // Genel finansal tavsiye
-    if (lowerMessage.includes('nasıl') || lowerMessage.includes('tavsiye') || lowerMessage.includes('öneri')) {
-      return `🎯 **Finansal Özgürlük Yol Haritası:**\n\n1️⃣ **Temel Adımlar:**\n• Gelir-gider dengesini kur\n• Acil durum fonu oluştur (3-6 ay)\n• Yüksek faizli borçları öde\n\n2️⃣ **Orta Vadeli:**\n• Düzenli birikim yap\n• Eğitime yatırım yap\n• Yan gelir kayakları oluştur\n\n3️⃣ **Uzun Vadeli:**\n• Yatırım portföyü oluştur\n• Emlak yatırımı değerlendir\n• Pasif gelir kayakları yarat\n\n💪 Finansal özgürlük bir maraton, sprint değil!`;
+    if (lowerMessage.includes('nasıl') || lowerMessage.includes('tavsiye') || lowerMessage.includes('öneri') || 
+        lowerMessage.includes('plan') || lowerMessage.includes('strateji')) {
+      return `🎯 **KAPSAMLI FİNANSAL ÖZGÜRLÜK REHBERİ**\n\n📋 **1. TEMEL (0-6 ay):**\n• Gelir-gider dengesini optimize edin\n• Acil durum fonu: 3-6 aylık gider\n• Yüksek faizli borçları öncelik verin\n• Finansal okuryazarlığı artırın\n\n💡 **2. GELİŞTİRME (6-18 ay):**\n• Düzenli yatırım planı başlatın\n• Yan gelir kaynaklarını çeşitlendirin\n• Emlak araştırması yapın\n• Risk yönetimini öğrenin\n\n🚀 **3. BÜYÜTME (18+ ay):**\n• Portföy çeşitlendirmesi\n• Pasif gelir akışları oluşturun\n• Vergi optimizasyonu\n• Finansal bağımsızlık hedefi\n\n💰 **BAŞARI KRİTERLERİ:**\n• Borç/Gelir oranı <%30\n• Acil durum fonu: 6 aylık gider\n• Yatırım/Gelir oranı >%20\n• Pasif gelir: Giderlerin %50'si\n\n🎖️ **FİNANSAL ÖZGÜRLÜK = 25x Yıllık Gider Rule**`;
     }
 
-    // Varsayılan yanıt
-    return `🤖 Size yardımcı olmak için buradayım! Şu konularda size yardımcı olabilirim:\n\n• "Finansal durumum nasıl?" - Detaylı analiz\n• "Yatırım önerileri ver" - Portföy önerileri\n• "Borçlarımı nasıl yöneteyim?" - Borç stratejileri\n• "Birikim planı yap" - Hedef belirleme\n\nHangi konuda yardım istiyorsunuz?`;
+    // Varsayılan akıllı yanıt
+    return `🤖 **AI FİNANSAL DANIŞMANINIZ HİZMETİNİZDE!**\n\nSize şu konularda detaylı yardım edebilirim:\n\n📊 **Analiz & Raporlama:**\n• "Finansal durumum nasıl?" - Detaylı rapor\n• "Araştır ve analiz yap" - Kapsamlı analiz\n\n💎 **Yatırım Rehberliği:**\n• "Hangi hisse senedi almalıyım?" - Hisse analizi\n• "Yatırım portföyü öner" - Portföy stratejisi\n• "İleri seviye yatırım tavsiyeleri" - Pro stratejiler\n\n💳 **Borç & Bütçe:**\n• "Borçlarımı nasıl yöneteyim?" - Borç stratejileri\n• "Plan yap" - Finansal roadmap\n\n🚫 **Risk Yönetimi:**\n• Kumar konusunda uyarılar ve alternatifler\n\nHangi konuda derinlemesine analiz istiyorsunuz?`;
   };
 
   const handleChatSubmit = () => {
