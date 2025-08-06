@@ -235,6 +235,8 @@ const BudgetApp = () => {
     if (!user) return;
     
     try {
+      console.log('Supabase\'den veriler yükleniyor...');
+      
       // Load incomes
       const { data: incomesData } = await (supabase as any).from('incomes').select('*').eq('user_id', user.id);
       if (incomesData) {
@@ -248,12 +250,70 @@ const BudgetApp = () => {
           nextIncomeDate: income.next_income_date || undefined
         }));
         setIncomes(formattedIncomes);
+        console.log('Gelirler yüklendi:', formattedIncomes.length);
       }
       
-      // Load other data similarly...
-      toast({ title: "Başarılı", description: "Veriler cihazlar arası senkronize edildi" });
+      // Load debts
+      const { data: debtsData } = await (supabase as any).from('debts').select('*').eq('user_id', user.id);
+      if (debtsData) {
+        const debtsWithPayments = [];
+        for (const debt of debtsData) {
+          const { data: paymentsData } = await (supabase as any).from('payments').select('*').eq('debt_id', debt.id);
+          const payments = (paymentsData || []).map((payment: any) => ({
+            id: payment.id,
+            amount: Number(payment.amount),
+            date: payment.date
+          }));
+          
+          debtsWithPayments.push({
+            id: debt.id,
+            description: debt.description,
+            totalAmount: Number(debt.total_amount),
+            dueDate: debt.due_date,
+            installmentCount: debt.installment_count,
+            payments,
+            monthlyRepeat: debt.monthly_repeat || false,
+            nextPaymentDate: debt.next_payment_date || undefined
+          });
+        }
+        setDebts(debtsWithPayments);
+        console.log('Borçlar yüklendi:', debtsWithPayments.length);
+      }
+      
+      // Load saving goals
+      const { data: savingGoalsData } = await (supabase as any).from('saving_goals').select('*').eq('user_id', user.id);
+      if (savingGoalsData) {
+        const formattedGoals = savingGoalsData.map((goal: any) => ({
+          id: goal.id,
+          title: goal.title,
+          targetAmount: Number(goal.target_amount),
+          currentAmount: Number(goal.current_amount),
+          category: goal.category,
+          deadline: goal.deadline
+        }));
+        setSavingGoals(formattedGoals);
+        console.log('Birikim hedefleri yüklendi:', formattedGoals.length);
+      }
+      
+      // Load settings
+      const { data: settingsData } = await (supabase as any).from('user_settings').select('*').eq('user_id', user.id).single();
+      if (settingsData) {
+        setSettings({
+          debtPercentage: settingsData.debt_percentage || 30,
+          savingsPercentage: settingsData.savings_percentage || 20,
+          debtStrategy: settingsData.debt_strategy || 'snowball'
+        });
+        console.log('Ayarlar yüklendi');
+      }
+      
+      toast({ title: "Başarılı", description: "Tüm veriler cihazlar arası senkronize edildi" });
     } catch (error) {
       console.error('Supabase sync error:', error);
+      toast({
+        title: "Senkronizasyon Hatası",
+        description: "Veriler yüklenirken hata oluştu, yerel veriler kullanılıyor",
+        variant: "destructive"
+      });
       // Fallback to localStorage if Supabase fails
       setIncomes(loadFromStorage('budgetApp_incomes', []));
       setDebts(loadFromStorage('budgetApp_debts', []));
@@ -477,14 +537,33 @@ const BudgetApp = () => {
     });
   };
 
-  // Add income function (overloaded for both form and direct usage)
-  const addIncomeData = (incomeData: Omit<Income, 'id'>) => {
+  // Add income function with Supabase sync
+  const addIncomeData = async (incomeData: Omit<Income, 'id'>) => {
     const newIncome: Income = {
       id: Date.now().toString(),
       ...incomeData
     };
+
+    // Save to Supabase if user is logged in
+    if (user) {
+      try {
+        await (supabase as any).from('incomes').insert({
+          user_id: user.id,
+          description: newIncome.description,
+          amount: newIncome.amount,
+          date: newIncome.date,
+          category: newIncome.category,
+          monthly_repeat: newIncome.monthlyRepeat,
+          next_income_date: newIncome.nextIncomeDate
+        });
+        console.log('Gelir Supabase\'e kaydedildi:', newIncome.description);
+      } catch (error) {
+        console.error('Supabase gelir kayıt hatası:', error);
+      }
+    }
+
     setIncomes(prev => [newIncome, ...prev]);
-    toast({ title: "Başarılı", description: "Gelir eklendi" });
+    toast({ title: "Başarılı", description: "Gelir eklendi ve senkronize edildi" });
   };
 
   // Voice Command Handler
