@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +33,9 @@ import {
   Mic,
   MicOff,
   Volume2,
-  VolumeX
+  VolumeX,
+  LogOut,
+  User
 } from 'lucide-react';
 
 // TypeScript Interface Definitions
@@ -141,6 +145,15 @@ const getCategoryEmoji = (category: string) => {
 
 const BudgetApp = () => {
   const { theme, setTheme } = useTheme();
+  const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
   
   // State Management
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -2119,6 +2132,35 @@ const BudgetApp = () => {
 
   const renderSettings = () => (
     <div className="space-y-6">
+      {/* User Account Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Kullanıcı Hesabı
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{user?.email}</p>
+              <p className="text-sm text-muted-foreground">
+                Kayıt tarihi: {user?.created_at ? formatDate(user.created_at) : 'Bilinmiyor'}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => signOut()}
+              className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Çıkış Yap
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Theme Settings Card */}
       <Card>
         <CardHeader>
