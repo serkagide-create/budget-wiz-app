@@ -179,7 +179,7 @@ const BudgetApp = () => {
   const synthRef = useRef<any>(null);
 
   // Form States
-  const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false });
+  const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
   const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
@@ -997,7 +997,7 @@ const BudgetApp = () => {
       nextIncomeDate: nextIncomeDate?.toISOString()
     });
 
-    setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false });
+    setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
   };
 
   const deleteIncome = (id: string) => {
@@ -1703,19 +1703,24 @@ const BudgetApp = () => {
                 value={incomeForm.amount}
                 onChange={(e) => setIncomeForm(prev => ({ ...prev, amount: e.target.value }))}
               />
-              <select
-                className="p-2 border rounded-md bg-background text-sm"
-                value={incomeForm.category}
-                onChange={(e) => setIncomeForm(prev => ({ ...prev, category: e.target.value }))}
-              >
-                <option value="">Kategori seçin</option>
-                <option value="salary">💼 Maaş</option>
-                <option value="freelance">💻 Freelance</option>
-                <option value="business">🏢 İş</option>
-                <option value="investment">📈 Yatırım</option>
-                <option value="other">💰 Diğer</option>
-              </select>
+              <Input
+                type="date"
+                value={incomeForm.date}
+                onChange={(e) => setIncomeForm(prev => ({ ...prev, date: e.target.value }))}
+              />
             </div>
+            <select
+              className="p-2 border rounded-md bg-background text-sm"
+              value={incomeForm.category}
+              onChange={(e) => setIncomeForm(prev => ({ ...prev, category: e.target.value }))}
+            >
+              <option value="">Kategori seçin</option>
+              <option value="salary">💼 Maaş</option>
+              <option value="freelance">💻 Freelance</option>
+              <option value="business">🏢 İş</option>
+              <option value="investment">📈 Yatırım</option>
+              <option value="other">💰 Diğer</option>
+            </select>
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
