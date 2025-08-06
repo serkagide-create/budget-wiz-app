@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
+import LandingPage from '@/components/LandingPage';
 
 const Auth = () => {
+  const [showLanding, setShowLanding] = useState(true);
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,10 +52,25 @@ const Auth = () => {
     }
   };
 
+  if (showLanding) {
+    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowLanding(true)}
+              className="absolute left-4 top-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Geri
+            </Button>
+          </div>
           <CardTitle className="text-2xl font-bold">
             {isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'}
           </CardTitle>
