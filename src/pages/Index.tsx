@@ -356,12 +356,8 @@ const BudgetApp = () => {
       synthRef.current = window.speechSynthesis;
     }
     
-    // Load saved ElevenLabs API key
-    const savedApiKey = loadFromStorage('elevenlabs_api_key', '');
-    if (savedApiKey) {
-      setElevenlabsApiKey(savedApiKey);
-      setVoiceEnabled(true);
-    }
+    // Voice is always enabled since we use Supabase edge function
+    setVoiceEnabled(true);
   }, []);
 
   // Save data when state changes
@@ -640,40 +636,41 @@ const BudgetApp = () => {
 
   // Text-to-Speech Functions
   const speakText = async (text: string) => {
-    if (!voiceEnabled || !elevenlabsApiKey) {
-      // Fallback to browser speech synthesis
-      if (synthRef.current) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'tr-TR';
-        utterance.rate = 0.9;
-        utterance.pitch = 1;
-        synthRef.current.speak(utterance);
-      }
-      return;
-    }
-
     try {
       setIsSpeaking(true);
       
-      const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/9BWtsMINqrJLrRacOk9x', {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': elevenlabsApiKey
-        },
-        body: JSON.stringify({
+      // Use Supabase edge function for text-to-speech
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { 
           text: text,
-          model_id: 'eleven_multilingual_v2',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.5
-          }
-        })
+          voice: '9BWtsMINqrJLrRacOk9x' // Aria voice ID
+        }
       });
 
-      if (response.ok) {
-        const audioBlob = await response.blob();
+      if (error) {
+        console.error('Edge function error:', error);
+        // Fallback to browser speech synthesis
+        if (synthRef.current) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'tr-TR';
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          synthRef.current.speak(utterance);
+        }
+        setIsSpeaking(false);
+        return;
+      }
+
+      if (data?.audioContent) {
+        // Convert base64 to audio blob
+        const audioData = atob(data.audioContent);
+        const arrayBuffer = new ArrayBuffer(audioData.length);
+        const view = new Uint8Array(arrayBuffer);
+        for (let i = 0; i < audioData.length; i++) {
+          view[i] = audioData.charCodeAt(i);
+        }
+        
+        const audioBlob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
         
@@ -682,20 +679,36 @@ const BudgetApp = () => {
           URL.revokeObjectURL(audioUrl);
         };
         
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          // Fallback to browser speech synthesis
+          if (synthRef.current) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'tr-TR';
+            synthRef.current.speak(utterance);
+          }
+        };
+        
         audio.play();
       } else {
-        console.error('ElevenLabs API hatası:', response.status);
+        setIsSpeaking(false);
         // Fallback to browser speech synthesis
         if (synthRef.current) {
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'tr-TR';
           synthRef.current.speak(utterance);
         }
-        setIsSpeaking(false);
       }
     } catch (error) {
       console.error('Ses sentezi hatası:', error);
       setIsSpeaking(false);
+      // Fallback to browser speech synthesis
+      if (synthRef.current) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'tr-TR';
+        synthRef.current.speak(utterance);
+      }
     }
   };
 
