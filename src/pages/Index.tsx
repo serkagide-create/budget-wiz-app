@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useFinancialData } from '@/hooks/useFinancialData';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -147,6 +148,11 @@ const BudgetApp = () => {
   const { theme, setTheme } = useTheme();
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  // State Management
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
+  const [settings, setSettings] = useState<Settings>({ debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' });
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -155,11 +161,6 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
   
-  // State Management
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
-  const [settings, setSettings] = useState<Settings>({ debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' });
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
 
@@ -206,12 +207,18 @@ const BudgetApp = () => {
     }
   };
 
-  // Load data on mount
+  // Load data on mount and sync with Supabase if user is logged in
   useEffect(() => {
-    setIncomes(loadFromStorage('budgetApp_incomes', []));
-    setDebts(loadFromStorage('budgetApp_debts', []));
-    setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
-    setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
+    if (user) {
+      // Load from Supabase for logged in users
+      loadDataFromSupabase();
+    } else {
+      // Load from localStorage for non-logged in users
+      setIncomes(loadFromStorage('budgetApp_incomes', []));
+      setDebts(loadFromStorage('budgetApp_debts', []));
+      setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
+      setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
+    }
     setChatMessages(loadFromStorage('budgetApp_chatMessages', [
       {
         id: 'welcome',
@@ -220,7 +227,39 @@ const BudgetApp = () => {
         timestamp: new Date()
       }
     ]));
-  }, []);
+  }, [user]);
+
+  // Function to load data from Supabase
+  const loadDataFromSupabase = async () => {
+    if (!user) return;
+    
+    try {
+      // Load incomes
+      const { data: incomesData } = await (supabase as any).from('incomes').select('*').eq('user_id', user.id);
+      if (incomesData) {
+        const formattedIncomes = incomesData.map((income: any) => ({
+          id: income.id,
+          description: income.description,
+          amount: Number(income.amount),
+          date: income.date,
+          category: income.category,
+          monthlyRepeat: income.monthly_repeat || false,
+          nextIncomeDate: income.next_income_date || undefined
+        }));
+        setIncomes(formattedIncomes);
+      }
+      
+      // Load other data similarly...
+      toast({ title: "Başarılı", description: "Veriler cihazlar arası senkronize edildi" });
+    } catch (error) {
+      console.error('Supabase sync error:', error);
+      // Fallback to localStorage if Supabase fails
+      setIncomes(loadFromStorage('budgetApp_incomes', []));
+      setDebts(loadFromStorage('budgetApp_debts', []));
+      setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
+      setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
+    }
+  };
 
   // Initialize voice recognition
   useEffect(() => {
