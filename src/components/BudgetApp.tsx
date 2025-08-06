@@ -8,6 +8,10 @@ import {
   AlertTriangle,
   Wallet
 } from 'lucide-react';
+import { IncomeManager } from './IncomeManager';
+import { DebtManager } from './DebtManager';
+import { SavingsManager } from './SavingsManager';
+import { SettingsManager } from './SettingsManager';
 
 // TypeScript Interface Definitions
 interface Income {
@@ -225,42 +229,27 @@ export const BudgetApp = () => {
           </TabsContent>
 
           <TabsContent value="incomes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gelir Yönetimi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Gelir yönetimi özellikleri geliştirilmeye devam ediyor...
-                </p>
-              </CardContent>
-            </Card>
+            <IncomeManager 
+              incomes={incomes} 
+              setIncomes={setIncomes} 
+              toast={toast} 
+            />
           </TabsContent>
 
           <TabsContent value="debts">
-            <Card>
-              <CardHeader>
-                <CardTitle>Borç Yönetimi</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Borç yönetimi özellikleri geliştirilmeye devam ediyor...
-                </p>
-              </CardContent>
-            </Card>
+            <DebtManager 
+              debts={debts} 
+              setDebts={setDebts} 
+              toast={toast} 
+            />
           </TabsContent>
 
           <TabsContent value="savings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tasarruf Hedefleri</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Tasarruf hedefleri özellikleri geliştirilmeye devam ediyor...
-                </p>
-              </CardContent>
-            </Card>
+            <SavingsManager 
+              savingGoals={savingGoals} 
+              setSavingGoals={setSavingGoals} 
+              toast={toast} 
+            />
           </TabsContent>
 
           <TabsContent value="ai">
@@ -277,16 +266,11 @@ export const BudgetApp = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ayarlar</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Ayarlar bölümü geliştirilmeye devam ediyor...
-                </p>
-              </CardContent>
-            </Card>
+            <SettingsManager 
+              settings={settings} 
+              setSettings={setSettings} 
+              totalIncome={totalIncome} 
+            />
           </TabsContent>
         </Tabs>
       </div>
