@@ -3,6 +3,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { FinancialHealthScore } from '@/components/FinancialHealthScore';
+import { AchievementBadges } from '@/components/AchievementBadges';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1551,12 +1553,55 @@ const BudgetApp = () => {
     </div>
   );
 
+  // Helper function to calculate financial health data
+  const getFinancialHealthData = () => {
+    const monthlyExpenses = totalIncome * 0.6; // Rough estimate
+    const emergencyFund = usedSavingsFund * 0.3; // Portion allocated for emergency
+    
+    return {
+      totalIncome,
+      totalDebtRemaining: debts.reduce((sum, debt) => {
+        const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+        return sum + Math.max(0, debt.totalAmount - totalPaid);
+      }, 0),
+      totalSavings: usedSavingsFund,
+      monthlyExpenses,
+      emergencyFund
+    };
+  };
+
+  // Helper function to calculate achievement data
+  const getAchievementData = () => {
+    const completedGoals = savingGoals.filter(goal => goal.currentAmount >= goal.targetAmount).length;
+    const monthsTracking = 1; // Bu değer gerçek uygulamada kullanıcının kayıt tarihinden hesaplanabilir
+    
+    return {
+      totalIncome,
+      totalDebtRemaining: debts.reduce((sum, debt) => {
+        const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+        return sum + Math.max(0, debt.totalAmount - totalPaid);
+      }, 0),
+      totalSavings: usedSavingsFund,
+      completedGoals,
+      totalGoals: savingGoals.length,
+      monthsTracking
+    };
+  };
+
   // Render Functions
   const renderDashboard = () => {
     const recommendations = getSmartRecommendations();
+    const healthData = getFinancialHealthData();
+    const achievementData = getAchievementData();
     
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Finansal Sağlık Skoru ve Başarı Rozetleri */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FinancialHealthScore data={healthData} />
+          <AchievementBadges data={achievementData} />
+        </div>
+
         {/* Smart Assistant Recommendations */}
         {recommendations.length > 0 && (
           <Card className="border-primary/20 bg-primary/5">
