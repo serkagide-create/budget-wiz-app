@@ -1596,11 +1596,6 @@ const BudgetApp = () => {
     
     return (
       <div className="space-y-6">
-        {/* Finansal Sağlık Skoru ve Başarı Rozetleri */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FinancialHealthScore data={healthData} />
-          <AchievementBadges data={achievementData} />
-        </div>
 
         {/* Smart Assistant Recommendations */}
         {recommendations.length > 0 && (
@@ -1837,6 +1832,22 @@ const BudgetApp = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Finansal Sağlık Skoru - Gelir Yönetimi */}
+      {incomes.length > 0 && (
+        <div className="mt-6">
+          <FinancialHealthScore data={{
+            totalIncome,
+            totalDebtRemaining: debts.reduce((sum, debt) => {
+              const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+              return sum + Math.max(0, debt.totalAmount - totalPaid);
+            }, 0),
+            totalSavings: usedSavingsFund,
+            monthlyExpenses: totalIncome - debtFund - savingsFund,
+            emergencyFund: availableSavingsFund
+          }} />
         </div>
       )}
     </div>
@@ -2161,6 +2172,25 @@ const BudgetApp = () => {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Başarı Rozetleri - Borç Yönetimi */}
+      {debts.length > 0 && (
+        <div className="mt-6">
+          <AchievementBadges 
+            data={{
+              totalIncome,
+              totalDebtRemaining: debts.reduce((sum, debt) => {
+                const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+                return sum + Math.max(0, debt.totalAmount - totalPaid);
+              }, 0),
+              totalSavings: usedSavingsFund,
+              completedGoals: savingGoals.filter(goal => goal.currentAmount >= goal.targetAmount).length,
+              totalGoals: savingGoals.length,
+              monthsTracking: 1
+            }}
+          />
         </div>
       )}
     </div>
