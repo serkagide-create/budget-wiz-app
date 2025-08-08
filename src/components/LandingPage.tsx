@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 import { Star, TrendingUp, PiggyBank, CreditCard, BarChart3, Shield, Smartphone, Users, CheckCircle, Sparkles, ArrowRight, DollarSign, Target, Zap } from 'lucide-react';
 
 interface LandingPageProps {
@@ -13,6 +17,14 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
   useEffect(() => {
     setIsVisible(true);
+  }, []);
+
+  useEffect(() => {
+    document.title = "Borç Yok | Nasıl Çalışır, Hakkımızda ve İletişim";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute('content', 'Borç Yok ile bütçe, borç yönetimi ve tasarruf hedefleri. Nasıl çalışır, hakkımızda ve bize ulaşın.');
+    }
   }, []);
 
   const testimonials = [
@@ -112,21 +124,45 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
     }
   ];
 
+  const handleContactSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const name = String(formData.get('name') || '');
+    const email = String(formData.get('email') || '');
+    const message = String(formData.get('message') || '');
+    const mailto = `mailto:support@borcuygu.netlify.app?subject=${encodeURIComponent('Borç Yok İletişim - ' + name)}&body=${encodeURIComponent(`Ad: ${name}\nE-posta: ${email}\n\nMesaj:\n${message}`)}`;
+    window.location.href = mailto;
+    toast({ title: 'Teşekkürler!', description: 'Mesajınız için teşekkür ederiz. En kısa sürede dönüş yapacağız.' });
+    form.reset();
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`w-4 h-4 transition-colors duration-200 ${
-          i < rating 
-            ? 'text-yellow-400 fill-yellow-400' 
-            : 'text-gray-300'
-        }`}
+        className={`w-4 h-4 transition-colors duration-200 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}
       />
     ));
   };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
+      <header className="sticky top-0 z-50 bg-white/70 dark:bg-gray-900/70 backdrop-blur border-b border-gray-200/60 dark:border-gray-800">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <a href="#" className="text-lg font-semibold text-gray-900 dark:text-white">Borç Yok</a>
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+            <a href="#how-it-works" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white story-link">Nasıl Çalışır</a>
+            <a href="#contact" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white story-link">Bize Ulaşın</a>
+            <a href="#about" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white story-link">Hakkımızda</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={onGetStarted} className="hidden md:inline-flex">
+              Uygulamaya Başla
+            </Button>
+          </div>
+        </div>
+      </header>
       {/* Hero Section */}
       <section className="relative min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white overflow-hidden">
         {/* Animated Background */}
@@ -192,8 +228,75 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         </div>
       </section>
 
+      {/* How It Works - Top */}
+      <section id="how-it-works" className="py-20 bg-white dark:bg-gray-900">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Animated UI Demo */}
+            <div aria-label="Uygulama canlı önizleme" className="relative mx-auto max-w-md w-full">
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Borç Yok • Demo</span>
+                  <span className="text-xs text-gray-500">Canlı Önizleme</span>
+                </div>
+                <div className="p-4 relative h-96 bg-gray-50 dark:bg-gray-900">
+                  <div className="absolute inset-0 flex flex-col gap-3 p-2">
+                    <div className="animate-enter rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow hover-scale p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">Aylık Bütçe</span>
+                        <span className="text-xs text-green-600">+₺1.250</span>
+                      </div>
+                      <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full w-2/3 bg-gradient-to-r from-green-500 to-emerald-600"></div>
+                      </div>
+                    </div>
+                    <div className="animate-slide-in-right rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                        <CreditCard className="w-4 h-4 text-blue-500" />
+                        <span>Borç Ödemesi planlandı • 15 Ağustos</span>
+                      </div>
+                    </div>
+                    <div className="animate-scale-in rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                        <PiggyBank className="w-4 h-4 text-purple-500" />
+                        <span>Tasarruf Hedefi: Tatil • %45</span>
+                      </div>
+                      <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full w-2/5 bg-gradient-to-r from-purple-500 to-violet-600"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 text-center">Arayüz önizlemesi animasyonlarla adımları gösterir.</p>
+            </div>
+
+            {/* Steps */}
+            <div>
+              <div className="text-left mb-8">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Nasıl Çalışır?</h2>
+                <p className="text-lg text-gray-600 dark:text-gray-300">Uygulamayı baştan sona video animasyon gibi özetleyen 4 basit adım.</p>
+              </div>
+              <div className="space-y-6">
+                {steps.map((s) => (
+                  <div key={s.step} className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white flex items-center justify-center font-bold shadow">
+                      {s.step}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{s.title}</h3>
+                      <p className="text-gray-600 dark:text-gray-300">{s.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-800">
+      <section id="features" className="py-20 bg-gray-50 dark:bg-gray-800">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
@@ -224,41 +327,6 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                   </p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
-              Nasıl <span className="text-purple-600">Çalışır?</span>
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300">
-              4 basit adımda finansal kontrolü elinize alın
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step, index) => (
-              <div key={index} className="text-center group">
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                    {step.step}
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center group-hover:animate-bounce">
-                    {step.icon}
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-purple-600 transition-colors">
-                  {step.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {step.description}
-                </p>
-              </div>
             ))}
           </div>
         </div>
@@ -300,6 +368,44 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Contact */}
+      <section id="contact" className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6 text-center">Bize Ulaşın</h2>
+            <p className="text-gray-600 dark:text-gray-300 mb-10 text-center">Sorularınız ve önerileriniz için formu doldurun. Size en kısa sürede dönüş yapalım.</p>
+            <form onSubmit={handleContactSubmit} className="grid grid-cols-1 gap-6">
+              <div>
+                <Label htmlFor="name">Ad Soyad</Label>
+                <Input id="name" name="name" required placeholder="Adınız Soyadınız" />
+              </div>
+              <div>
+                <Label htmlFor="email">E-posta</Label>
+                <Input id="email" name="email" type="email" required placeholder="ornek@mail.com" />
+              </div>
+              <div>
+                <Label htmlFor="message">Mesajınız</Label>
+                <Textarea id="message" name="message" required placeholder="Bize nasıl yardımcı olabiliriz?" rows={5} />
+              </div>
+              <div className="flex justify-center">
+                <Button type="submit" size="lg" className="px-8">Gönder</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* About */}
+      <section id="about" className="py-20 bg-white dark:bg-gray-900">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">Hakkımızda</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">Borç Yok, kişisel finansınızı kolayca yönetmenizi sağlayan modern bir bütçe ve borç yönetimi uygulamasıdır. Gelir-gider takibi, borç planlama ve tasarruf hedefleriyle finansal özgürlüğe giden yolda yanınızdayız.</p>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">Bu uygulama Serkan Gider tarafından tasarlanmıştır.</p>
           </div>
         </div>
       </section>
