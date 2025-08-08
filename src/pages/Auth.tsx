@@ -59,29 +59,33 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-lg relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowLanding(true)}
-          className="absolute left-4 top-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Geri
-        </Button>
-
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl font-bold">
-              {isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'}
-            </CardTitle>
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm"
-            >
-              {isSignUp ? 'Giriş Yap' : 'Kayıt Ol'}
-            </Button>
+          <div className="grid grid-cols-3 items-center">
+            <div className="justify-self-start">
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm"
+              >
+                {isSignUp ? 'Giriş Yap' : 'Kayıt Ol'}
+              </Button>
+            </div>
+            <div className="justify-self-center">
+              <CardTitle className="text-2xl font-bold">
+                {isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'}
+              </CardTitle>
+            </div>
+            <div className="justify-self-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLanding(true)}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Geri
+              </Button>
+            </div>
           </div>
           <p className="text-muted-foreground text-center">
             {isSignUp ? 'Bütçe uygulamasına kayıt olun' : 'Hesabınıza giriş yapın'}
