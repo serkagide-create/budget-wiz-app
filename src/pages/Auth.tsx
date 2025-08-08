@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 
-import logo from '@/assets/finansal-ozgurluk-logo.png';
+import logo from '@/assets/borc-yok-logo.png';
 
 const Auth = () => {
   
@@ -86,8 +86,8 @@ const Auth = () => {
         <div className="grid md:grid-cols-2">
           <aside className="hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-primary/40 via-primary/25 to-primary/10 border-r">
             <div className="space-y-2">
-              <img src={logo} alt="Finansal Özgürlük logo" className="h-10 w-auto drop-shadow" loading="lazy" />
-              <h1 className="text-3xl font-bold tracking-tight">Finansal Özgürlük</h1>
+              <img src={logo} alt="Borç Yok logo" className="h-10 w-auto drop-shadow" loading="lazy" />
+              <h1 className="text-3xl font-bold tracking-tight">Borç Yok</h1>
               <p className="mt-2 text-muted-foreground">Harcamalarını takip et, birikim hedeflerine ulaş.</p>
             </div>
 
@@ -106,12 +106,12 @@ const Auth = () => {
               </li>
             </ul>
 
-            <div className="text-xs text-muted-foreground mt-8">© {new Date().getFullYear()} Budget Wiz</div>
+            <div className="text-xs text-muted-foreground mt-8">© {new Date().getFullYear()} Borç Yok</div>
           </aside>
 
           <div className="p-6 md:p-8 flex flex-col justify-center">
             <div className="mb-6 flex justify-center">
-              <img src={logo} alt="Finansal Özgürlük logo" className="h-10 w-auto drop-shadow" loading="lazy" />
+              <img src={logo} alt="Borç Yok logo" className="h-10 w-auto drop-shadow" loading="lazy" />
             </div>
             <Tabs value={isSignUp ? 'signup' : 'signin'} onValueChange={(v) => setIsSignUp(v === 'signup')} className="w-full">
               <div className="mb-4">
