@@ -2549,9 +2549,9 @@ const BudgetApp = () => {
     return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto p-4 max-w-4xl">
-        <div className="mb-6 flex items-center gap-4">
-          <img src={brandLogo} alt="Borç Yok logo – borçsuz yaşam için güvenli finans" className="h-14 sm:h-16 md:h-20 w-auto drop-shadow" loading="lazy" />
-          <div>
+        <div className="mb-6 flex flex-col items-center gap-3 text-center md:flex-row md:items-center md:gap-4 md:text-left">
+          <img src={brandLogo} alt="Borç Yok logo – borçsuz yaşam için güvenli finans" className="h-16 md:h-20 w-auto drop-shadow" loading="lazy" />
+          <div className="hidden md:block">
             <h1 className="text-3xl font-bold text-foreground">Borç Yok</h1>
             <p className="text-muted-foreground">Borçsuz gelecek için bugün başla</p>
           </div>

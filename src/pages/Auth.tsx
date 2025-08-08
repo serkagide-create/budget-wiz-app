@@ -111,7 +111,7 @@ const Auth = () => {
 
           <div className="p-6 md:p-8 flex flex-col justify-center">
             <div className="mb-6 flex justify-center">
-              <img src={logo} alt="Borç Yok logo – borçsuz yaşam için güvenli finans" className="h-20 sm:h-24 md:h-28 w-auto drop-shadow" loading="lazy" />
+              <img src={logo} alt="Borç Yok logo – borçsuz yaşam için güvenli finans" className="h-16 sm:h-20 md:h-24 w-auto drop-shadow" loading="lazy" />
             </div>
             <Tabs value={isSignUp ? 'signup' : 'signin'} onValueChange={(v) => setIsSignUp(v === 'signup')} className="w-full">
               <div className="mb-4">
