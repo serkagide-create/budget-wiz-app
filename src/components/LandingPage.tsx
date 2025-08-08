@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Star, TrendingUp, PiggyBank, CreditCard, BarChart3, Shield, Smartphone, Users, CheckCircle, Sparkles, ArrowRight, DollarSign, Target, Zap } from 'lucide-react';
+import AnimatedPreview from '@/components/AnimatedPreview';
 
 interface LandingPageProps {
   onGetStarted: () => void;
@@ -233,49 +234,13 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Animated UI Demo */}
-            <div aria-label="Uygulama canlı önizleme" className="relative mx-auto max-w-md w-full">
-              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Borç Yok • Demo</span>
-                  <span className="text-xs text-gray-500">Canlı Önizleme</span>
-                </div>
-                <div className="p-4 relative h-96 bg-gray-50 dark:bg-gray-900">
-                  <div className="absolute inset-0 flex flex-col gap-3 p-2">
-                    <div className="animate-enter rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow hover-scale p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">Aylık Bütçe</span>
-                        <span className="text-xs text-green-600">+₺1.250</span>
-                      </div>
-                      <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full w-2/3 bg-gradient-to-r from-green-500 to-emerald-600"></div>
-                      </div>
-                    </div>
-                    <div className="animate-slide-in-right rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                        <CreditCard className="w-4 h-4 text-blue-500" />
-                        <span>Borç Ödemesi planlandı • 15 Ağustos</span>
-                      </div>
-                    </div>
-                    <div className="animate-scale-in rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                        <PiggyBank className="w-4 h-4 text-purple-500" />
-                        <span>Tasarruf Hedefi: Tatil • %45</span>
-                      </div>
-                      <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full w-2/5 bg-gradient-to-r from-purple-500 to-violet-600"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 text-center">Arayüz önizlemesi animasyonlarla adımları gösterir.</p>
-            </div>
+            <AnimatedPreview />
 
             {/* Steps */}
             <div>
               <div className="text-left mb-8">
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Nasıl Çalışır?</h2>
-                <p className="text-lg text-gray-600 dark:text-gray-300">Uygulamayı baştan sona video animasyon gibi özetleyen 4 basit adım.</p>
+                <p className="text-lg text-gray-600 dark:text-gray-300">Geliri girdikten sonra AI danışman borç kapatma ve birikim dağılımını otomatik planlar; adımları aşağıdaki önizlemede izleyin.</p>
               </div>
               <div className="space-y-6">
                 {steps.map((s) => (
