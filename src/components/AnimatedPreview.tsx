@@ -16,7 +16,7 @@ const AnimatedPreview: React.FC = () => {
         const idx = TAB_KEYS.indexOf(prev);
         return TAB_KEYS[(idx + 1) % TAB_KEYS.length];
       });
-    }, 2600);
+    }, 4200);
     return () => clearInterval(interval);
   }, []);
 
@@ -93,7 +93,7 @@ const AnimatedPreview: React.FC = () => {
               <TabsContent value="debts" className="m-0 h-full">
                 <div className="absolute inset-0 flex flex-col gap-3 p-2">
                   {debts.map((d, i) => (
-                    <div key={d.name} className={`animate-enter rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3 delay-[${i * 100}ms]`}>
+                    <div key={d.name} className={`animate-enter rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3 delay-[${i * 200}ms]`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CreditCard className="w-4 h-4 text-blue-500" />
@@ -119,7 +119,7 @@ const AnimatedPreview: React.FC = () => {
               <TabsContent value="savings" className="m-0 h-full">
                 <div className="absolute inset-0 flex flex-col gap-3 p-2">
                   {goals.map((g, i) => (
-                    <div key={g.name} className={`animate-enter rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3 delay-[${i * 100}ms]`}>
+                    <div key={g.name} className={`animate-enter rounded-xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow p-3 delay-[${i * 200}ms]`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <PiggyBank className="w-4 h-4 text-purple-500" />

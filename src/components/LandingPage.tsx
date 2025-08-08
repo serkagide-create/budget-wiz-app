@@ -61,6 +61,12 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
 
   const features = [
     {
+      icon: <Sparkles className="w-6 h-6" />,
+      title: "AI Danışman",
+      description: "Nakit akışı tahmini, borç kapatma stratejisi (Kartopu/Çığ), hedeflere akıllı dağıtım ve zamanında hatırlatmalar",
+      color: "from-emerald-500 to-teal-600"
+    },
+    {
       icon: <TrendingUp className="w-6 h-6" />,
       title: "Akıllı Gelir Takibi",
       description: "Tüm gelirlerinizi kategorilendirin ve otomatik tekrar eden gelirler ekleyin",
@@ -162,6 +168,14 @@ const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               Uygulamaya Başla
             </Button>
           </div>
+        </div>
+        {/* Mobile quick links */}
+        <div className="container mx-auto px-4 pb-3 md:hidden">
+          <nav className="flex items-center gap-3 overflow-x-auto">
+            <a href="#how-it-works" className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs">Nasıl Çalışır</a>
+            <a href="#contact" className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs">Bize Ulaşın</a>
+            <a href="#about" className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs">Hakkımızda</a>
+          </nav>
         </div>
       </header>
       {/* Hero Section */}
