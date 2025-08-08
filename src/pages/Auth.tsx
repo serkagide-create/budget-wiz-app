@@ -109,18 +109,22 @@ const Auth = () => {
             <div className="text-xs text-muted-foreground mt-8">© {new Date().getFullYear()} Budget Wiz</div>
           </aside>
 
-          <div className="p-6 md:p-8">
+          <div className="p-6 md:p-8 flex flex-col justify-center">
+            <div className="mb-6 flex justify-center">
+              <img src={logo} alt="Finansal Özgürlük logo" className="h-10 w-auto drop-shadow" loading="lazy" />
+            </div>
             <Tabs value={isSignUp ? 'signup' : 'signin'} onValueChange={(v) => setIsSignUp(v === 'signup')} className="w-full">
-              <div className="flex items-center justify-between mb-4">
-                <Button variant="ghost" size="sm" onClick={() => navigate('/')}> 
+              <div className="mb-4">
+                <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="mb-3"> 
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
                 </Button>
-                <TabsList className="grid grid-cols-2 bg-primary/10 rounded-lg p-1">
-                  <TabsTrigger value="signin">Giriş Yap</TabsTrigger>
-                  <TabsTrigger value="signup">Kayıt Ol</TabsTrigger>
-                </TabsList>
-                <img src={logo} alt="Finansal Özgürlük logo" className="h-6 w-auto md:hidden" loading="lazy" />
+                <div className="flex justify-center">
+                  <TabsList className="grid grid-cols-2 bg-primary/10 rounded-lg p-1">
+                    <TabsTrigger value="signin">Giriş Yap</TabsTrigger>
+                    <TabsTrigger value="signup">Kayıt Ol</TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
 
               <CardHeader className="p-0 space-y-1">
