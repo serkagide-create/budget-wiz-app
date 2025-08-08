@@ -128,8 +128,14 @@ export const useAuth = () => {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      
-      if (error) {
+
+      const tolerant = (err: any) => {
+        const msg = (err?.message || '').toLowerCase();
+        const status = (err as any)?.status;
+        return status === 400 || status === 401 || status === 403 || msg.includes('no current session') || msg.includes('session not found');
+      };
+
+      if (error && !tolerant(error)) {
         toast({
           title: "Çıkış Hatası",
           description: error.message,
@@ -140,7 +146,7 @@ export const useAuth = () => {
 
       toast({
         title: "Başarılı",
-        description: "Çıkış yapıldı"
+        description: error ? "Zaten çıkış yapılmış" : "Çıkış yapıldı"
       });
 
       return { error: null };
