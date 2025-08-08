@@ -42,7 +42,7 @@ import {
   User
 } from 'lucide-react';
 
-import brandLogo from '@/assets/borc-yok-logo.png';
+import brandLogo from '@/assets/borc-yok-logo-2.png';
 
 // TypeScript Interface Definitions
 interface Income {
@@ -2538,7 +2538,7 @@ const BudgetApp = () => {
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="mb-6 flex items-center gap-4">
-          <img src={brandLogo} alt="Borç Yok logo" className="h-8 sm:h-10 md:h-12 w-auto drop-shadow" loading="lazy" />
+          <img src={brandLogo} alt="Borç Yok logo – borçsuz yaşam için güvenli finans" className="h-12 sm:h-14 md:h-16 w-auto drop-shadow" loading="lazy" />
           <div>
             <h1 className="text-3xl font-bold text-foreground">Borç Yok</h1>
             <p className="text-muted-foreground">Özgür bütçe, huzurlu hayat</p>
