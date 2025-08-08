@@ -157,10 +157,12 @@ const BudgetApp = () => {
   const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
   const [settings, setSettings] = useState<Settings>({ debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' });
 
-  // Ana sayfa herkese açık: giriş yapmayanları yönlendirmiyoruz
+  // Giriş yapılmadıysa landing sayfasına yönlendir
   useEffect(() => {
-    // no-op
-  }, [user, loading]);
+    if (!loading && !user) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();

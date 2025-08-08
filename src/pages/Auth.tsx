@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 
+import logo from '@/assets/finansal-ozgurluk-logo.png';
 
 const Auth = () => {
   
@@ -25,7 +26,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/app');
     }
   }, [user, navigate]);
 
@@ -84,11 +85,10 @@ const Auth = () => {
       <Card className="w-full max-w-5xl overflow-hidden shadow-lg">
         <div className="grid md:grid-cols-2">
           <aside className="hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-primary/40 via-primary/25 to-primary/10 border-r">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Bütçe Uygulaması</h1>
-              <p className="mt-2 text-muted-foreground">
-                Harcamalarını takip et, birikim hedeflerine ulaş.
-              </p>
+            <div className="space-y-2">
+              <img src={logo} alt="Finansal Özgürlük logo" className="h-10 w-auto drop-shadow" loading="lazy" />
+              <h1 className="text-3xl font-bold tracking-tight">Finansal Özgürlük</h1>
+              <p className="mt-2 text-muted-foreground">Harcamalarını takip et, birikim hedeflerine ulaş.</p>
             </div>
 
             <ul className="space-y-4 mt-6">
@@ -116,11 +116,11 @@ const Auth = () => {
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Geri
                 </Button>
-                <TabsList className="grid grid-cols-2">
+                <TabsList className="grid grid-cols-2 bg-primary/10 rounded-lg p-1">
                   <TabsTrigger value="signin">Giriş Yap</TabsTrigger>
                   <TabsTrigger value="signup">Kayıt Ol</TabsTrigger>
                 </TabsList>
-                <div />
+                <img src={logo} alt="Finansal Özgürlük logo" className="h-6 w-auto md:hidden" loading="lazy" />
               </div>
 
               <CardHeader className="p-0 space-y-1">
