@@ -168,6 +168,7 @@ const BudgetApp = () => {
   
   const [activeTab, setActiveTab] = useState('dashboard');
   const { toast } = useToast();
+  const hasShownSyncToastRef = useRef(false);
 
   // AI Assistant State
   const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'assistant', message: string, timestamp: Date}>>([]);
@@ -310,7 +311,10 @@ const BudgetApp = () => {
         console.log('Ayarlar yüklendi');
       }
       
-      toast({ title: "Başarılı", description: "Tüm veriler cihazlar arası senkronize edildi" });
+      if (!hasShownSyncToastRef.current) {
+        toast({ title: "Başarılı", description: "Tüm veriler cihazlar arası senkronize edildi" });
+        hasShownSyncToastRef.current = true;
+      }
     } catch (error) {
       console.error('Supabase sync error:', error);
       toast({
