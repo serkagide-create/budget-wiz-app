@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
@@ -27,6 +28,10 @@ const Auth = () => {
       navigate('/');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    document.title = isSignUp ? 'Kayıt Ol | Bütçe Uygulaması' : 'Giriş Yap | Bütçe Uygulaması';
+  }, [isSignUp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,22 +64,15 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-lg relative">
-        <CardHeader className="space-y-1">
+        <Tabs value={isSignUp ? 'signup' : 'signin'} onValueChange={(v) => setIsSignUp(v === 'signup')} className="w-full">
+        <CardHeader className="space-y-4">
           <div className="grid grid-cols-3 items-center">
-            <div className="justify-self-start">
-              <Button
-                type="button"
-                variant="link"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm"
-              >
-                {isSignUp ? 'Giriş Yap' : 'Kayıt Ol'}
-              </Button>
-            </div>
+            <div className="justify-self-start" />
             <div className="justify-self-center">
-              <CardTitle className="text-2xl font-bold">
-                {isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'}
-              </CardTitle>
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="signin">Giriş Yap</TabsTrigger>
+                <TabsTrigger value="signup">Kayıt Ol</TabsTrigger>
+              </TabsList>
             </div>
             <div className="justify-self-end">
               <Button
@@ -87,6 +85,9 @@ const Auth = () => {
               </Button>
             </div>
           </div>
+          <CardTitle className="text-2xl font-bold text-center">
+            {isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'}
+          </CardTitle>
           <p className="text-muted-foreground text-center">
             {isSignUp ? 'Bütçe uygulamasına kayıt olun' : 'Hesabınıza giriş yapın'}
           </p>
@@ -181,7 +182,8 @@ const Auth = () => {
 
           <Button
             type="button"
-            className="w-full bg-white text-[#1a73e8] border border-gray-300 hover:bg-gray-50 hover:text-[#1557b0]"
+            variant="outline"
+            className="w-full"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
           >
@@ -206,6 +208,7 @@ const Auth = () => {
             Google ile Giriş
           </Button>
         </CardContent>
+        </Tabs>
       </Card>
     </div>
   );
