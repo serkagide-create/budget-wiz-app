@@ -42,7 +42,7 @@ import {
   User
 } from 'lucide-react';
 
-import brandLogo from '@/assets/borc-yok-logo-3.png';
+import brandLogo from '@/assets/borc-yok-logo-1.png';
 
 // TypeScript Interface Definitions
 interface Income {
@@ -2534,7 +2534,19 @@ const BudgetApp = () => {
     </div>
   );
 
-  return (
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <span className="text-muted-foreground">Yükleniyor...</span>
+        </div>
+      );
+    }
+
+    if (!loading && !user) {
+      return null; // yönlendirme useEffect ile yapılır
+    }
+
+    return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto p-4 max-w-4xl">
         <div className="mb-6 flex items-center gap-4">

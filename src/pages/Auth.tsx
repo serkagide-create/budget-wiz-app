@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 
-import logo from '@/assets/borc-yok-logo-3.png';
+import logo from '@/assets/borc-yok-logo-1.png';
 
 const Auth = () => {
   
@@ -127,13 +127,12 @@ const Auth = () => {
                 </div>
               </div>
 
-              <CardHeader className="p-0 space-y-1">
-                <CardTitle className="text-2xl font-bold">
-                  {isSignUp ? 'Hesap Oluştur' : 'Giriş Yap'}
-                </CardTitle>
-                <p className="text-muted-foreground">
-                  {isSignUp ? 'Bütçe uygulamasına kayıt olun' : 'Hesabınıza giriş yapın'}
-                </p>
+              <CardHeader className="p-0 space-y-1 text-center">
+                {isSignUp ? (
+                  <CardTitle className="text-2xl font-bold">Hesap Oluştur</CardTitle>
+                ) : (
+                  <p className="text-muted-foreground">Hesabınıza giriş yapın</p>
+                )}
               </CardHeader>
 
               <CardContent className="p-0 pt-6 space-y-6">
