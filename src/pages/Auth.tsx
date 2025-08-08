@@ -83,7 +83,7 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/40 flex items-center justify-center p-4">
       <Card className="w-full max-w-5xl overflow-hidden shadow-lg">
         <div className="grid md:grid-cols-2">
-          <aside className="hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-primary/15 via-primary/10 to-transparent border-r">
+          <aside className="hidden md:flex flex-col justify-between p-8 bg-gradient-to-br from-primary/40 via-primary/25 to-primary/10 border-r">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Bütçe Uygulaması</h1>
               <p className="mt-2 text-muted-foreground">
