@@ -42,6 +42,8 @@ import {
   User
 } from 'lucide-react';
 
+import brandLogo from '@/assets/borc-yok-logo.png';
+
 // TypeScript Interface Definitions
 interface Income {
   id: string;
@@ -1602,7 +1604,7 @@ const BudgetApp = () => {
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                🤖 Akıllı Asistan
+                🤖 Borç Yok Asistanı
                 <Badge variant="secondary" className="text-xs">
                   {settings.debtStrategy === 'snowball' ? '⚡ Kartopu' : '🏔️ Çığ'} Stratejisi
                 </Badge>
@@ -2535,9 +2537,12 @@ const BudgetApp = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto p-4 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground mb-2">💰 Akıllı Bütçe Asistanı</h1>
-          <p className="text-muted-foreground">Gelirlerinizi yönetin, borçlarınızı takip edin, hedeflerinize ulaşın</p>
+        <div className="mb-6 flex items-center gap-4">
+          <img src={brandLogo} alt="Borç Yok logo" className="h-8 sm:h-10 md:h-12 w-auto drop-shadow" loading="lazy" />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Borç Yok</h1>
+            <p className="text-muted-foreground">Özgür bütçe, huzurlu hayat</p>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
