@@ -569,70 +569,100 @@ const BudgetApp = () => {
     setIncomes(prev => [newIncome, ...prev]);
     toast({ title: "Başarılı", description: "Gelir eklendi ve senkronize edildi" });
   };
+ 
+  // Natural Language Command Parsing (Turkish)
+  const extractAmountFromText = (raw: string): number | null => {
+    const text = raw.replace(/₺/g, '').replace(/\s+/g, ' ').trim();
+    // 1) "50 bin" style
+    const binMatch = text.match(/(\d+[\.,]?\d*)\s*bin/);
+    if (binMatch) {
+      const n = parseFloat(binMatch[1].replace(/\./g, '').replace(',', '.'));
+      if (!isNaN(n)) return Math.round(n * 1000);
+    }
+    // 2) 50.000 or 50,000 or 50000 or 50.000,50
+    const numMatch = text.match(/(\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?/);
+    if (numMatch) {
+      const normalized = numMatch[1].replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+      const val = parseFloat(normalized);
+      if (!isNaN(val)) return Math.round(val);
+    }
+    return null;
+  };
+  const detectExpenseCategory = (t: string): string => {
+    if (/(kira|ev|konut)/.test(t)) return 'Kira';
+    if (/(market|alışveriş|gıda|bakkal)/.test(t)) return 'Market';
+    if (/(fatura|elektrik|su|doğalgaz|internet|telefon)/.test(t)) return 'Fatura';
+    if (/(ulaşı[mn]|yakıt|benzin|otobüs|metro)/.test(t)) return 'Ulaşım';
+    if (/(yemek|dışarıda yemek|restoran|kafe)/.test(t)) return 'Yemek';
+    if (/(eğlence|hobi|sinema|oyun)/.test(t)) return 'Eğlence';
+    if (/(sağlık|ilaç|doktor)/.test(t)) return 'Sağlık';
+    if (/(eğitim|kurs|okul)/.test(t)) return 'Eğitim';
+    return 'Gider';
+  };
+
+  const tryExecuteNLCommand = async (input: string): Promise<boolean> => {
+    const text = input.toLowerCase();
+    const amount = extractAmountFromText(text);
+
+    // Income add
+    if (/(gelir|maaş|prim)/.test(text) && amount !== null) {
+      await addIncomeData({
+        description: 'Komutla eklenen gelir',
+        amount: Math.abs(amount),
+        date: new Date().toISOString(),
+        category: 'Gelir',
+        monthlyRepeat: false,
+      });
+      const response = `${formatCurrency(Math.abs(amount))} gelir eklendi.`;
+      addChatMessage('assistant', response);
+      if (voiceEnabled) await speakText(response);
+      return true;
+    }
+
+    // Expense add (store as negative income)
+    if (/(gider|harcama|masraf)/.test(text) && amount !== null) {
+      const category = detectExpenseCategory(text);
+      await addIncomeData({
+        description: 'Komutla eklenen gider',
+        amount: -Math.abs(amount),
+        date: new Date().toISOString(),
+        category,
+        monthlyRepeat: false,
+      });
+      const response = `${formatCurrency(Math.abs(amount))} tutarında ${category.toLowerCase()} gideri eklendi.`;
+      addChatMessage('assistant', response);
+      if (voiceEnabled) await speakText(response);
+      return true;
+    }
+
+    // Debt payment
+    if ((/öde|ödeme/.test(text)) && amount !== null) {
+      const sorted = getSortedDebts();
+      if (sorted.length > 0) {
+        const target = sorted[0];
+        makePayment(target.id, Math.abs(amount));
+        const response = `${formatCurrency(Math.abs(amount))} ödeme ${target.description} borcuna uygulandı.`;
+        addChatMessage('assistant', response);
+        if (voiceEnabled) await speakText(response);
+      } else {
+        const response = 'Ödeme yapılacak aktif borç bulunamadı.';
+        addChatMessage('assistant', response);
+        if (voiceEnabled) await speakText(response);
+      }
+      return true;
+    }
+
+    return false;
+  };
 
   // Voice Command Handler
   const handleVoiceCommand = async (transcript: string) => {
-    const lowerTranscript = transcript.toLowerCase();
-    console.log('İşlenen sesli komut:', lowerTranscript);
-    
-    // Gelir ekleme komutları
-    if (lowerTranscript.includes('gelir') && (lowerTranscript.includes('bin') || lowerTranscript.includes('lira') || /\d+/.test(lowerTranscript))) {
-      const amountMatch = lowerTranscript.match(/(\d+)\s*(bin|lira)/);
-      if (amountMatch) {
-        let amount = parseInt(amountMatch[1]);
-        if (amountMatch[2] === 'bin') {
-          amount = amount * 1000;
-        }
-        
-        // Gelir ekle
-        addIncomeData({
-          description: 'Sesli komutla eklenen gelir',
-          amount: amount,
-          date: new Date().toISOString(),
-          category: 'Maaş',
-          monthlyRepeat: true
-        });
-        
-        const response = `${formatCurrency(amount)} gelir başarıyla eklendi! Toplam geliriniz şimdi ${formatCurrency(totalIncome + amount)} oldu.`;
-        addChatMessage('assistant', response);
-        if (voiceEnabled) {
-          await speakText(response);
-        }
-        return;
-      }
-    }
-    
-    // Ödeme komutları
-    if ((lowerTranscript.includes('öde') || lowerTranscript.includes('ödeme')) && (lowerTranscript.includes('bin') || lowerTranscript.includes('lira') || /\d+/.test(lowerTranscript))) {
-      const amountMatch = lowerTranscript.match(/(\d+)\s*(bin|lira)/);
-      if (amountMatch) {
-        let amount = parseInt(amountMatch[1]);
-        if (amountMatch[2] === 'bin') {
-          amount = amount * 1000;
-        }
-        
-        // En yüksek öncelikli borcu bul
-        const sortedDebts = getSortedDebts();
-        if (sortedDebts.length > 0) {
-          const targetDebt = sortedDebts[0];
-          makePayment(targetDebt.id, amount);
-          
-          const response = `${formatCurrency(amount)} ödeme ${targetDebt.description} borcuna yapıldı! Kalan borç: ${formatCurrency(Math.max(0, targetDebt.remaining - amount))}`;
-          addChatMessage('assistant', response);
-          if (voiceEnabled) {
-            await speakText(response);
-          }
-        } else {
-          const response = 'Ödeme yapılacak aktif borç bulunamadı.';
-          addChatMessage('assistant', response);
-          if (voiceEnabled) {
-            await speakText(response);
-          }
-        }
-        return;
-      }
-    }
-    
+    const lower = transcript.toLowerCase();
+    console.log('İşlenen sesli komut:', lower);
+
+    const handled = await tryExecuteNLCommand(lower);
+    if (handled) return;
+
     // Diğer sesli komutları normal chat olarak işle
     addChatMessage('user', transcript);
     const response = generateAIResponse(transcript);
@@ -954,7 +984,7 @@ const BudgetApp = () => {
     return `🤖 **AI FİNANSAL DANIŞMANINIZ HİZMETİNİZDE!**\n\nSize şu konularda detaylı yardım edebilirim:\n\n📊 **Analiz & Raporlama:**\n• "Finansal durumum nasıl?" - Detaylı rapor\n• "Araştır ve analiz yap" - Kapsamlı analiz\n\n💎 **Yatırım Rehberliği:**\n• "Hangi hisse senedi almalıyım?" - Hisse analizi\n• "Yatırım portföyü öner" - Portföy stratejisi\n• "İleri seviye yatırım tavsiyeleri" - Pro stratejiler\n\n💳 **Borç & Bütçe:**\n• "Borçlarımı nasıl yöneteyim?" - Borç stratejileri\n• "Plan yap" - Finansal roadmap\n\n🚫 **Risk Yönetimi:**\n• Kumar konusunda uyarılar ve alternatifler\n\nHangi konuda derinlemesine analiz istiyorsunuz?`;
   };
 
-  const handleChatSubmit = () => {
+  const handleChatSubmit = async () => {
     if (!chatInput.trim()) return;
 
     const userMessage = {
@@ -967,7 +997,15 @@ const BudgetApp = () => {
     setChatMessages(prev => [...prev, userMessage]);
     setIsProcessing(true);
 
-    // AI yanıtını simüle et (gerçek uygulamada API çağrısı olacak)
+    // Önce doğal dil komutlarını dene (gelir/gider/ödeme)
+    const handled = await tryExecuteNLCommand(chatInput.toLowerCase());
+    if (handled) {
+      setIsProcessing(false);
+      setChatInput('');
+      return;
+    }
+
+    // Aksi halde akıllı yanıt oluştur
     setTimeout(() => {
       const aiResponse = generateAIResponse(chatInput);
       const assistantMessage = {
@@ -979,7 +1017,7 @@ const BudgetApp = () => {
 
       setChatMessages(prev => [...prev, assistantMessage]);
       setIsProcessing(false);
-    }, 1000 + Math.random() * 2000); // 1-3 saniye arası
+    }, 1000 + Math.random() * 2000);
 
     setChatInput('');
   };
