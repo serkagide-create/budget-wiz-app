@@ -1,0 +1,4 @@
+project_id = "poipkkidkdlqfobtdaqw"
+
+[functions.check-financial-milestones]
+verify_jwt = false
