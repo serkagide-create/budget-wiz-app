@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      budgets: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          id?: string
+          period_start?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           created_at: string
@@ -48,6 +78,39 @@ export type Database = {
           monthly_repeat?: boolean | null
           next_payment_date?: string | null
           total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
           updated_at?: string
           user_id?: string
         }
