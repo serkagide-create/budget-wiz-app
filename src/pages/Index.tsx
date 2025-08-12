@@ -571,9 +571,21 @@ const BudgetApp = () => {
   };
  
   // Natural Language Command Parsing (Turkish)
+  // Normalize Turkish text: lowercase + replace diacritics/typographical variants
+  const normalizeTR = (s: string): string => {
+    return s
+      .toLowerCase()
+      .replace(/ı/g, 'i').replace(/İ/g, 'i')
+      .replace(/ş/g, 's').replace(/Ş/g, 's')
+      .replace(/ğ/g, 'g').replace(/Ğ/g, 'g')
+      .replace(/ç/g, 'c').replace(/Ç/g, 'c')
+      .replace(/ö/g, 'o').replace(/Ö/g, 'o')
+      .replace(/ü/g, 'u').replace(/Ü/g, 'u');
+  };
+
   const extractAmountFromText = (raw: string): number | null => {
-    const text = raw.replace(/₺/g, '').replace(/\s+/g, ' ').trim();
-    // 1) "50 bin" style
+    const text = normalizeTR(raw).replace(/₺/g, '').replace(/\s+/g, ' ').trim();
+    // 1) "50 bin" style (handles voice typos like "bın" via normalizeTR)
     const binMatch = text.match(/(\d+[\.,]?\d*)\s*bin/);
     if (binMatch) {
       const n = parseFloat(binMatch[1].replace(/\./g, '').replace(',', '.'));
@@ -588,6 +600,7 @@ const BudgetApp = () => {
     }
     return null;
   };
+
   const detectExpenseCategory = (t: string): string => {
     if (/(kira|ev|konut)/.test(t)) return 'Kira';
     if (/(market|alışveriş|gıda|bakkal)/.test(t)) return 'Market';
@@ -600,20 +613,42 @@ const BudgetApp = () => {
     return 'Gider';
   };
 
+  // Detect income intent and build a descriptive label/category
+  const hasIncomeIntent = (t: string): boolean => {
+    const kw = ['gelir', 'maas', 'prim', 'ikramiye', 'bonus', 'freelance', 'serbest', 'ek is', 'ek gelir', 'kira gelir'];
+    return kw.some(k => t.includes(k));
+  };
+
+  const detectIncomeInfo = (t: string): { category: string; description: string } => {
+    const labels: string[] = [];
+    if (t.includes('maas')) labels.push('Maaş');
+    if (t.includes('freelance') || t.includes('serbest')) labels.push('Freelance');
+    if (t.includes('ek is') || t.includes('ek gelir')) labels.push('Ek Gelir');
+    if (t.includes('prim') || t.includes('ikramiye') || t.includes('bonus')) labels.push('Prim/Bonus');
+    if (t.includes('kira gelir')) labels.push('Kira Geliri');
+
+    const description = labels.length > 0 ? labels.join(' + ') : 'Gelir';
+    // If only one specific label matched, use it as category; otherwise fallback to generic
+    const category = labels.length === 1 ? labels[0] : 'Gelir';
+    return { category, description };
+  };
+
   const tryExecuteNLCommand = async (input: string): Promise<boolean> => {
     const text = input.toLowerCase();
     const amount = extractAmountFromText(text);
 
     // Income add
-    if (/(gelir|maaş|prim)/.test(text) && amount !== null) {
+    const n = normalizeTR(input);
+    if (hasIncomeIntent(n) && amount !== null) {
+      const info = detectIncomeInfo(n);
       await addIncomeData({
-        description: 'Komutla eklenen gelir',
+        description: info.description,
         amount: Math.abs(amount),
         date: new Date().toISOString(),
-        category: 'Gelir',
+        category: info.category,
         monthlyRepeat: false,
       });
-      const response = `${formatCurrency(Math.abs(amount))} gelir eklendi.`;
+      const response = `${formatCurrency(Math.abs(amount))} ${info.description.toLowerCase()} eklendi.`;
       addChatMessage('assistant', response);
       if (voiceEnabled) await speakText(response);
       return true;
