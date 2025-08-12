@@ -113,6 +113,17 @@ const formatDate = (dateString: string): string => {
   }
 };
 
+// Safely format message timestamps that may be string or Date
+const formatMsgTime = (ts: any): string => {
+  try {
+    const d = ts instanceof Date ? ts : new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+};
+
 const getDaysUntilDue = (dueDate: string): number => {
   if (!dueDate) return Infinity;
   try {
@@ -1506,7 +1517,7 @@ const BudgetApp = () => {
                 >
                   <div className="whitespace-pre-wrap text-sm">{msg.message}</div>
                   <div className="text-xs opacity-60 mt-1">
-                    {msg.timestamp.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                    {formatMsgTime(msg.timestamp)}
                   </div>
                 </div>
               </div>
