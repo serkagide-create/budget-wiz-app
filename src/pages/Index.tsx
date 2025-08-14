@@ -218,6 +218,10 @@ const BudgetApp = () => {
     deadline: ''
   });
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
+  
+  // Edit States
+  const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
+  const [editDebtForm, setEditDebtForm] = useState({ description: '', totalAmount: '', dueDate: '', installmentCount: '' });
 
   // Form submission handlers
   const handleAddIncome = async () => {
@@ -303,6 +307,59 @@ const BudgetApp = () => {
     } catch (error) {
       toast({ title: "Hata", description: "Tutar eklenirken hata oluştu", variant: "destructive" });
     }
+  };
+
+  // Debt editing functions
+  const handleEditDebt = (debt: Debt) => {
+    setEditingDebtId(debt.id);
+    setEditDebtForm({
+      description: debt.description,
+      totalAmount: debt.totalAmount.toString(),
+      dueDate: debt.dueDate.split('T')[0], // Format date for input
+      installmentCount: debt.installmentCount.toString()
+    });
+  };
+
+  const handleSaveDebtEdit = async () => {
+    if (!editingDebtId || !editDebtForm.description || !editDebtForm.totalAmount || !editDebtForm.dueDate || !editDebtForm.installmentCount) {
+      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const updatedData = {
+        description: editDebtForm.description,
+        totalAmount: parseFloat(editDebtForm.totalAmount),
+        dueDate: editDebtForm.dueDate,
+        installmentCount: parseInt(editDebtForm.installmentCount)
+      };
+
+      // Since there's no updateDebt function in the hook, we need to use raw Supabase update
+      const { error } = await supabase
+        .from('debts')
+        .update({
+          description: updatedData.description,
+          total_amount: updatedData.totalAmount,
+          due_date: updatedData.dueDate,
+          installment_count: updatedData.installmentCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingDebtId);
+
+      if (error) throw error;
+
+      setEditingDebtId(null);
+      setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '' });
+      toast({ title: "Başarılı", description: "Borç güncellendi" });
+      refreshData(); // Refresh data to show updated debt
+    } catch (error) {
+      toast({ title: "Hata", description: "Borç güncellenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+  const handleCancelDebtEdit = () => {
+    setEditingDebtId(null);
+    setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '' });
   };
 
   // Local Storage Functions
@@ -1848,38 +1905,99 @@ const BudgetApp = () => {
               <Card key={debt.id} className={isWarning ? 'border-destructive' : ''}>
                 <CardContent className="p-4">
                   <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                         <div className="flex items-center gap-2">
-                           {/* Priority indicator */}
-                           <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                             index === 0 ? 'bg-primary/20 text-primary font-medium' : 
-                             index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
-                             'bg-muted/30 text-muted-foreground'
-                           }`}>
-                             {index === 0 ? '🎯 Öncelik #1' : `#${index + 1}`}
+                     <div className="flex items-start justify-between">
+                       <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {/* Priority indicator */}
+                            <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                              index === 0 ? 'bg-primary/20 text-primary font-medium' : 
+                              index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
+                              'bg-muted/30 text-muted-foreground'
+                            }`}>
+                              {index === 0 ? '🎯 Öncelik #1' : `#${index + 1}`}
+                            </div>
+                            
+                            {editingDebtId === debt.id ? (
+                              <Input
+                                value={editDebtForm.description}
+                                onChange={(e) => setEditDebtForm(prev => ({ ...prev, description: e.target.value }))}
+                                className="text-base font-medium"
+                              />
+                            ) : (
+                              <h3 className="font-medium">{debt.description}</h3>
+                            )}
+                            {isWarning && (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                {warningText}
+                              </Badge>
+                            )}
+                          </div>
+                         {editingDebtId === debt.id ? (
+                           <div className="grid grid-cols-3 gap-2 mt-2">
+                             <Input
+                               type="number"
+                               placeholder="Tutar"
+                               value={editDebtForm.totalAmount}
+                               onChange={(e) => setEditDebtForm(prev => ({ ...prev, totalAmount: e.target.value }))}
+                             />
+                             <Input
+                               type="date"
+                               value={editDebtForm.dueDate}
+                               onChange={(e) => setEditDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                             />
+                             <Input
+                               type="number"
+                               placeholder="Taksit"
+                               value={editDebtForm.installmentCount}
+                               onChange={(e) => setEditDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
+                             />
                            </div>
-                           
-                           <h3 className="font-medium">{debt.description}</h3>
-                           {isWarning && (
-                             <Badge variant="destructive" className="text-xs">
-                               <AlertTriangle className="w-3 h-3 mr-1" />
-                               {warningText}
-                             </Badge>
-                           )}
-                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteDebt(debt.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                         ) : (
+                           <p className="text-sm text-muted-foreground">
+                             {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
+                           </p>
+                         )}
+                       </div>
+                       <div className="flex gap-1">
+                         {editingDebtId === debt.id ? (
+                           <>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={handleSaveDebtEdit}
+                               className="text-green-600 hover:text-green-700"
+                             >
+                               <Check className="w-4 h-4" />
+                             </Button>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={handleCancelDebtEdit}
+                             >
+                               ✕
+                             </Button>
+                           </>
+                         ) : (
+                           <>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => handleEditDebt(debt)}
+                             >
+                               ✏️
+                             </Button>
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               onClick={() => deleteDebt(debt.id)}
+                             >
+                               <Trash2 className="w-4 h-4" />
+                             </Button>
+                           </>
+                         )}
+                       </div>
+                     </div>
                     
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
@@ -1987,26 +2105,87 @@ const BudgetApp = () => {
                   <Card key={debt.id} className="opacity-75 border-income/20">
                     <CardContent className="p-4">
                       <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <div className="bg-income/20 text-income text-xs px-2 py-1 rounded font-medium">
-                                ✅ Tamamlandı
-                              </div>
-                              <h3 className="font-medium">{debt.description}</h3>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteDebt(debt.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                         <div className="flex items-start justify-between">
+                           <div className="flex-1">
+                             <div className="flex items-center gap-2">
+                               <div className="bg-income/20 text-income text-xs px-2 py-1 rounded font-medium">
+                                 ✅ Tamamlandı
+                               </div>
+                               {editingDebtId === debt.id ? (
+                                 <Input
+                                   value={editDebtForm.description}
+                                   onChange={(e) => setEditDebtForm(prev => ({ ...prev, description: e.target.value }))}
+                                   className="text-base font-medium"
+                                 />
+                               ) : (
+                                 <h3 className="font-medium">{debt.description}</h3>
+                               )}
+                             </div>
+                             {editingDebtId === debt.id ? (
+                               <div className="grid grid-cols-3 gap-2 mt-2">
+                                 <Input
+                                   type="number"
+                                   placeholder="Tutar"
+                                   value={editDebtForm.totalAmount}
+                                   onChange={(e) => setEditDebtForm(prev => ({ ...prev, totalAmount: e.target.value }))}
+                                 />
+                                 <Input
+                                   type="date"
+                                   value={editDebtForm.dueDate}
+                                   onChange={(e) => setEditDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                                 />
+                                 <Input
+                                   type="number"
+                                   placeholder="Taksit"
+                                   value={editDebtForm.installmentCount}
+                                   onChange={(e) => setEditDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
+                                 />
+                               </div>
+                             ) : (
+                               <p className="text-sm text-muted-foreground">
+                                 {formatDate(debt.dueDate)} • {debt.installmentCount} taksit
+                               </p>
+                             )}
+                           </div>
+                           <div className="flex gap-1">
+                             {editingDebtId === debt.id ? (
+                               <>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={handleSaveDebtEdit}
+                                   className="text-green-600 hover:text-green-700"
+                                 >
+                                   <Check className="w-4 h-4" />
+                                 </Button>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={handleCancelDebtEdit}
+                                 >
+                                   ✕
+                                 </Button>
+                               </>
+                             ) : (
+                               <>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={() => handleEditDebt(debt)}
+                                 >
+                                   ✏️
+                                 </Button>
+                                 <Button
+                                   variant="ghost"
+                                   size="sm"
+                                   onClick={() => deleteDebt(debt.id)}
+                                 >
+                                   <Trash2 className="w-4 h-4" />
+                                 </Button>
+                               </>
+                             )}
+                           </div>
+                         </div>
                         
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
