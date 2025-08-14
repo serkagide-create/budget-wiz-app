@@ -164,11 +164,26 @@ const BudgetApp = () => {
   const { theme, setTheme } = useTheme();
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  // State Management
-  const [incomes, setIncomes] = useState<Income[]>([]);
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
-  const [settings, setSettings] = useState<Settings>({ debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' });
+  const { toast } = useToast();
+  
+  // Use the financial data hook
+  const {
+    incomes,
+    debts,
+    savingGoals,
+    settings,
+    loading: dataLoading,
+    addIncome,
+    deleteIncome,
+    addDebt,
+    addPayment,
+    deleteDebt,
+    addSavingGoal,
+    updateSavingGoal,
+    deleteSavingGoal,
+    updateSettings,
+    refreshData
+  } = useFinancialData();
 
   // Giriş yapılmadıysa landing sayfasına yönlendir
   useEffect(() => {
@@ -176,9 +191,8 @@ const BudgetApp = () => {
       navigate('/');
     }
   }, [user, loading, navigate]);
-  
+
   const [activeTab, setActiveTab] = useState('dashboard');
-  const { toast } = useToast();
   const hasShownSyncToastRef = useRef(false);
 
   // AI Assistant State
@@ -224,18 +238,8 @@ const BudgetApp = () => {
     }
   };
 
-  // Load data on mount and sync with Supabase if user is logged in
+  // Load chat messages on mount
   useEffect(() => {
-    if (user) {
-      // Load from Supabase for logged in users
-      loadDataFromSupabase();
-    } else {
-      // Load from localStorage for non-logged in users
-      setIncomes(loadFromStorage('budgetApp_incomes', []));
-      setDebts(loadFromStorage('budgetApp_debts', []));
-      setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
-      setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
-    }
     setChatMessages(loadFromStorage('budgetApp_chatMessages', [
       {
         id: 'welcome',
@@ -244,102 +248,8 @@ const BudgetApp = () => {
         timestamp: new Date()
       }
     ]));
-  }, [user]);
+  }, []);
 
-  // Function to load data from Supabase
-  const loadDataFromSupabase = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('Supabase\'den veriler yükleniyor...');
-      
-      // Load incomes
-      const { data: incomesData } = await (supabase as any).from('incomes').select('*').eq('user_id', user.id);
-      if (incomesData) {
-        const formattedIncomes = incomesData.map((income: any) => ({
-          id: income.id,
-          description: income.description,
-          amount: Number(income.amount),
-          date: income.date,
-          category: income.category,
-          monthlyRepeat: income.monthly_repeat || false,
-          nextIncomeDate: income.next_income_date || undefined
-        }));
-        setIncomes(formattedIncomes);
-        console.log('Gelirler yüklendi:', formattedIncomes.length);
-      }
-      
-      // Load debts
-      const { data: debtsData } = await (supabase as any).from('debts').select('*').eq('user_id', user.id);
-      if (debtsData) {
-        const debtsWithPayments = [];
-        for (const debt of debtsData) {
-          const { data: paymentsData } = await (supabase as any).from('payments').select('*').eq('debt_id', debt.id);
-          const payments = (paymentsData || []).map((payment: any) => ({
-            id: payment.id,
-            amount: Number(payment.amount),
-            date: payment.date
-          }));
-          
-          debtsWithPayments.push({
-            id: debt.id,
-            description: debt.description,
-            totalAmount: Number(debt.total_amount),
-            dueDate: debt.due_date,
-            installmentCount: debt.installment_count,
-            payments,
-            monthlyRepeat: debt.monthly_repeat || false,
-            nextPaymentDate: debt.next_payment_date || undefined
-          });
-        }
-        setDebts(debtsWithPayments);
-        console.log('Borçlar yüklendi:', debtsWithPayments.length);
-      }
-      
-      // Load saving goals
-      const { data: savingGoalsData } = await (supabase as any).from('saving_goals').select('*').eq('user_id', user.id);
-      if (savingGoalsData) {
-        const formattedGoals = savingGoalsData.map((goal: any) => ({
-          id: goal.id,
-          title: goal.title,
-          targetAmount: Number(goal.target_amount),
-          currentAmount: Number(goal.current_amount),
-          category: goal.category,
-          deadline: goal.deadline
-        }));
-        setSavingGoals(formattedGoals);
-        console.log('Birikim hedefleri yüklendi:', formattedGoals.length);
-      }
-      
-      // Load settings
-      const { data: settingsData } = await (supabase as any).from('user_settings').select('*').eq('user_id', user.id).single();
-      if (settingsData) {
-        setSettings({
-          debtPercentage: settingsData.debt_percentage || 30,
-          savingsPercentage: settingsData.savings_percentage || 20,
-          debtStrategy: settingsData.debt_strategy || 'snowball'
-        });
-        console.log('Ayarlar yüklendi');
-      }
-      
-      if (!hasShownSyncToastRef.current) {
-        toast({ title: "Başarılı", description: "Tüm veriler cihazlar arası senkronize edildi" });
-        hasShownSyncToastRef.current = true;
-      }
-    } catch (error) {
-      console.error('Supabase sync error:', error);
-      toast({
-        title: "Senkronizasyon Hatası",
-        description: "Veriler yüklenirken hata oluştu, yerel veriler kullanılıyor",
-        variant: "destructive"
-      });
-      // Fallback to localStorage if Supabase fails
-      setIncomes(loadFromStorage('budgetApp_incomes', []));
-      setDebts(loadFromStorage('budgetApp_debts', []));
-      setSavingGoals(loadFromStorage('budgetApp_savingGoals', []));
-      setSettings(loadFromStorage('budgetApp_settings', { debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' }));
-    }
-  };
 
   // Initialize voice recognition
   useEffect(() => {
@@ -380,10 +290,6 @@ const BudgetApp = () => {
   }, []);
 
   // Save data when state changes
-  useEffect(() => { saveToStorage('budgetApp_incomes', incomes); }, [incomes]);
-  useEffect(() => { saveToStorage('budgetApp_debts', debts); }, [debts]);
-  useEffect(() => { saveToStorage('budgetApp_savingGoals', savingGoals); }, [savingGoals]);
-  useEffect(() => { saveToStorage('budgetApp_settings', settings); }, [settings]);
   useEffect(() => { saveToStorage('budgetApp_chatMessages', chatMessages); }, [chatMessages]);
   useEffect(() => { saveToStorage('elevenlabs_api_key', elevenlabsApiKey); }, [elevenlabsApiKey]);
 
@@ -523,63 +429,11 @@ const BudgetApp = () => {
     setChatMessages(prev => [...prev, newMessage]);
   };
 
-  // Helper function to make payment
+  // Helper function to make payment using hook
   const makePayment = (debtId: string, amount: number) => {
-    const debt = debts.find(d => d.id === debtId);
-    if (!debt) return;
-
-    const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
-    const remaining = debt.totalAmount - totalPaid;
-    const paymentAmount = Math.min(amount, remaining);
-
-    if (paymentAmount <= 0) return;
-
-    const newPayment: Payment = {
-      id: Date.now().toString(),
-      amount: paymentAmount,
-      date: new Date().toISOString()
-    };
-
-    setDebts(prev => prev.map(d => 
-      d.id === debtId 
-        ? { ...d, payments: [newPayment, ...d.payments] }
-        : d
-    ));
-
-    toast({ 
-      title: "Ödeme Başarılı", 
-      description: `${formatCurrency(paymentAmount)} ödeme yapıldı` 
-    });
+    addPayment(debtId, { amount, date: new Date().toISOString() });
   };
 
-  // Add income function with Supabase sync
-  const addIncomeData = async (incomeData: Omit<Income, 'id'>) => {
-    const newIncome: Income = {
-      id: Date.now().toString(),
-      ...incomeData
-    };
-
-    // Save to Supabase if user is logged in
-    if (user) {
-      try {
-        await (supabase as any).from('incomes').insert({
-          user_id: user.id,
-          description: newIncome.description,
-          amount: newIncome.amount,
-          date: newIncome.date,
-          category: newIncome.category,
-          monthly_repeat: newIncome.monthlyRepeat,
-          next_income_date: newIncome.nextIncomeDate
-        });
-        console.log('Gelir Supabase\'e kaydedildi:', newIncome.description);
-      } catch (error) {
-        console.error('Supabase gelir kayıt hatası:', error);
-      }
-    }
-
-    setIncomes(prev => [newIncome, ...prev]);
-    toast({ title: "Başarılı", description: "Gelir eklendi ve senkronize edildi" });
-  };
  
   // Natural Language Command Parsing (Turkish)
   // Normalize Turkish text: lowercase + replace diacritics/typographical variants
@@ -652,7 +506,7 @@ const BudgetApp = () => {
     const n = normalizeTR(input);
     if (hasIncomeIntent(n) && amount !== null) {
       const info = detectIncomeInfo(n);
-      await addIncomeData({
+      await addIncome({
         description: info.description,
         amount: Math.abs(amount),
         date: new Date().toISOString(),
@@ -668,7 +522,7 @@ const BudgetApp = () => {
     // Expense add (store as negative income)
     if (/(gider|harcama|masraf)/.test(text) && amount !== null) {
       const category = detectExpenseCategory(text);
-      await addIncomeData({
+      await addIncome({
         description: 'Komutla eklenen gider',
         amount: -Math.abs(amount),
         date: new Date().toISOString(),
@@ -1079,165 +933,7 @@ const BudgetApp = () => {
     ]);
   };
 
-  // Income Functions
-  const addIncome = () => {
-    if (!incomeForm.description.trim() || !incomeForm.amount || !incomeForm.category) {
-      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
-      return;
-    }
 
-    // Calculate next income date (same day next month if monthly repeat)
-    let nextIncomeDate;
-    if (incomeForm.monthlyRepeat) {
-      const today = new Date();
-      nextIncomeDate = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
-    }
-
-    addIncomeData({
-      description: incomeForm.description.trim(),
-      amount: parseFloat(incomeForm.amount),
-      date: new Date().toISOString(),
-      category: incomeForm.category,
-      monthlyRepeat: incomeForm.monthlyRepeat,
-      nextIncomeDate: nextIncomeDate?.toISOString()
-    });
-
-    setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
-  };
-
-  const deleteIncome = (id: string) => {
-    setIncomes(prev => prev.filter(income => income.id !== id));
-    toast({ title: "Başarılı", description: "Gelir silindi" });
-  };
-
-  // Debt Functions
-  const addDebt = () => {
-    if (!debtForm.description.trim() || !debtForm.amount || !debtForm.dueDate || !debtForm.installmentCount) {
-      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
-      return;
-    }
-
-    const installmentCount = parseInt(debtForm.installmentCount);
-    if (installmentCount <= 0) {
-      toast({ title: "Hata", description: "Taksit sayısı 0'dan büyük olmalı", variant: "destructive" });
-      return;
-    }
-
-    // Calculate next payment date (15th of current/next month)
-    const today = new Date();
-    let nextPaymentDate = new Date(today.getFullYear(), today.getMonth(), 15);
-    if (today.getDate() >= 15) {
-      nextPaymentDate = new Date(today.getFullYear(), today.getMonth() + 1, 15);
-    }
-
-    const newDebt: Debt = {
-      id: Date.now().toString(),
-      description: debtForm.description.trim(),
-      totalAmount: parseFloat(debtForm.amount),
-      dueDate: debtForm.dueDate,
-      installmentCount: installmentCount,
-      payments: [],
-      monthlyRepeat: debtForm.monthlyRepeat,
-      nextPaymentDate: debtForm.monthlyRepeat ? nextPaymentDate.toISOString() : undefined
-    };
-
-    setDebts(prev => [newDebt, ...prev]);
-    
-    setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
-    toast({ title: "Başarılı", description: "Borç eklendi" });
-  };
-
-  // Otomatik taksit dağıtımı
-  const autoDistributeInstallments = (debt: Debt) => {
-    const installmentAmount = Math.floor(debt.totalAmount / debt.installmentCount);
-    const remainingAmount = debt.totalAmount - (installmentAmount * debt.installmentCount);
-    
-    const payments: Payment[] = [];
-    
-    for (let i = 0; i < debt.installmentCount; i++) {
-      let amount = installmentAmount;
-      // Son taksitte kalan tutarı ekle
-      if (i === debt.installmentCount - 1) {
-        amount += remainingAmount;
-      }
-      
-      if (amount > availableDebtFund) {
-        toast({ 
-          title: "Uyarı", 
-          description: `Taksit ${i + 1} için borç fonu yetersiz`, 
-          variant: "destructive" 
-        });
-        break;
-      }
-      
-      const payment: Payment = {
-        id: `${Date.now()}-${i}`,
-        amount: amount,
-        date: new Date().toISOString()
-      };
-      
-      payments.push(payment);
-    }
-    
-    if (payments.length > 0) {
-      setDebts(prev => prev.map(d => 
-        d.id === debt.id 
-          ? { ...d, payments: payments }
-          : d
-      ));
-    }
-  };
-
-  const addPayment = (debtId: string) => {
-    const amount = parseFloat(paymentForms[debtId] || '0');
-    if (!amount || amount <= 0) {
-      toast({ title: "Hata", description: "Geçerli bir tutar girin", variant: "destructive" });
-      return;
-    }
-
-    if (amount > availableDebtFund) {
-      toast({ title: "Hata", description: "Borç fonu yetersiz", variant: "destructive" });
-      return;
-    }
-
-    const debt = debts.find(d => d.id === debtId);
-    if (!debt) return;
-
-    const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
-    if (totalPaid + amount > debt.totalAmount) {
-      toast({ title: "Hata", description: "Borç tutarından fazla ödeme yapılamaz", variant: "destructive" });
-      return;
-    }
-
-    const newPayment: Payment = {
-      id: Date.now().toString(),
-      amount,
-      date: new Date().toISOString()
-    };
-
-    setDebts(prev => prev.map(d => 
-      d.id === debtId 
-        ? { ...d, payments: [newPayment, ...d.payments] }
-        : d
-    ));
-
-    setPaymentForms(prev => ({ ...prev, [debtId]: '' }));
-    toast({ title: "Başarılı", description: "Ödeme eklendi" });
-  };
-
-  const deletePayment = (debtId: string, paymentId: string) => {
-    setDebts(prev => prev.map(debt =>
-      debt.id === debtId
-        ? { ...debt, payments: debt.payments.filter(p => p.id !== paymentId) }
-        : debt
-    ));
-    toast({ title: "Başarılı", description: "Ödeme silindi" });
-  };
-
-  const deleteDebt = (id: string) => {
-    setDebts(prev => prev.filter(debt => debt.id !== id));
-    toast({ title: "Başarılı", description: "Borç silindi" });
-  };
 
   // Pay installment function
   const payInstallment = (debtId: string) => {
@@ -1371,46 +1067,6 @@ const BudgetApp = () => {
     return () => clearInterval(interval);
   }, [incomes, debts, availableDebtFund, toast]);
 
-  // Saving Goal Functions
-  const addSavingGoal = () => {
-    if (!savingForm.title.trim() || !savingForm.targetAmount || !savingForm.deadline) {
-      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
-      return;
-    }
-
-    const newGoal: SavingGoal = {
-      id: Date.now().toString(),
-      title: savingForm.title.trim(),
-      targetAmount: parseFloat(savingForm.targetAmount),
-      currentAmount: 0,
-      category: savingForm.category,
-      deadline: savingForm.deadline
-    };
-
-    setSavingGoals(prev => [newGoal, ...prev]);
-    setSavingForm({ title: '', targetAmount: '', category: 'other', deadline: '' });
-    toast({ title: "Başarılı", description: "Hedef eklendi" });
-  };
-
-  const addSavingAmount = (goalId: string, amount: number) => {
-    if (amount > availableSavingsFund) {
-      toast({ title: "Hata", description: "Birikim fonu yetersiz", variant: "destructive" });
-      return;
-    }
-
-    setSavingGoals(prev => prev.map(goal =>
-      goal.id === goalId
-        ? { ...goal, currentAmount: Math.min(goal.currentAmount + amount, goal.targetAmount) }
-        : goal
-    ));
-
-    toast({ title: "Başarılı", description: "Birikim eklendi" });
-  };
-
-  const deleteSavingGoal = (id: string) => {
-    setSavingGoals(prev => prev.filter(goal => goal.id !== id));
-    toast({ title: "Başarılı", description: "Hedef silindi" });
-  };
 
   // AI Assistant Render Function
   const renderAIAssistant = () => (
