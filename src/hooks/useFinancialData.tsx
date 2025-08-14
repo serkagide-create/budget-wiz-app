@@ -29,6 +29,7 @@ export interface Debt {
   payments: Payment[];
   monthlyRepeat?: boolean;
   nextPaymentDate?: string;
+  category?: 'credit-card' | 'loan' | 'mortgage' | 'car-loan' | 'bill' | 'installment' | 'other';
 }
 
 export interface SavingGoal {
@@ -165,7 +166,8 @@ export const useFinancialData = () => {
         installmentCount: debt.installment_count,
         payments,
         monthlyRepeat: debt.monthly_repeat || false,
-        nextPaymentDate: debt.next_payment_date || undefined
+        nextPaymentDate: debt.next_payment_date || undefined,
+        category: debt.category as Debt['category'] || 'other'
       });
     }
     
@@ -299,7 +301,8 @@ export const useFinancialData = () => {
         due_date: debt.dueDate,
         installment_count: debt.installmentCount,
         monthly_repeat: debt.monthlyRepeat,
-        next_payment_date: debt.nextPaymentDate
+        next_payment_date: debt.nextPaymentDate,
+        category: debt.category || 'other'
       })
       .select()
       .single();
@@ -322,7 +325,8 @@ export const useFinancialData = () => {
       installmentCount: data.installment_count,
       payments: [],
       monthlyRepeat: data.monthly_repeat || false,
-      nextPaymentDate: data.next_payment_date || undefined
+      nextPaymentDate: data.next_payment_date || undefined,
+      category: data.category as Debt['category'] || 'other'
     };
     
     setDebts(prev => [newDebt, ...prev]);

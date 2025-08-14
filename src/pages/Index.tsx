@@ -14,6 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from "next-themes";
 import { 
@@ -39,7 +40,12 @@ import {
   Volume2,
   VolumeX,
   LogOut,
-  User
+  User,
+  CreditCard,
+  Building2,
+  FileText,
+  ShoppingCart,
+  Receipt
 } from 'lucide-react';
 
 import brandLogo from '@/assets/borc-yok-logo-1.png';
@@ -70,6 +76,7 @@ interface Debt {
   payments: Payment[];
   monthlyRepeat?: boolean;
   nextPaymentDate?: string;
+  category?: 'credit-card' | 'loan' | 'mortgage' | 'car-loan' | 'bill' | 'installment' | 'other';
 }
 
 interface SavingGoal {
@@ -136,6 +143,19 @@ const getDaysUntilDue = (dueDate: string): number => {
   } catch {
     return Infinity;
   }
+};
+
+const getDebtCategoryIcon = (category: string) => {
+  const icons = {
+    'credit-card': <CreditCard className="w-5 h-5" />,
+    'loan': <Building2 className="w-5 h-5" />,
+    'mortgage': <Home className="w-5 h-5" />,
+    'car-loan': <Car className="w-5 h-5" />,
+    'bill': <FileText className="w-5 h-5" />,
+    'installment': <ShoppingCart className="w-5 h-5" />,
+    'other': <Receipt className="w-5 h-5" />
+  };
+  return icons[category as keyof typeof icons] || icons.other;
 };
 
 const getCategoryIcon = (category: string) => {
@@ -210,7 +230,7 @@ const BudgetApp = () => {
 
   // Form States
   const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
-  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
+  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other' as Debt['category'] });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
     targetAmount: '', 
@@ -264,10 +284,11 @@ const BudgetApp = () => {
         monthlyRepeat: debtForm.monthlyRepeat,
         nextPaymentDate: debtForm.monthlyRepeat ? 
           new Date(new Date(debtForm.dueDate).setMonth(new Date(debtForm.dueDate).getMonth() + 1)).toISOString() : 
-          undefined
+          undefined,
+        category: debtForm.category
       });
       
-      setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
+      setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other' });
       toast({ title: "Başarılı", description: "Borç eklendi" });
     } catch (error) {
       toast({ title: "Hata", description: "Borç eklenirken hata oluştu", variant: "destructive" });
@@ -1810,6 +1831,23 @@ const BudgetApp = () => {
               value={debtForm.description}
               onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
             />
+            <Select
+              value={debtForm.category}
+              onValueChange={(value) => setDebtForm(prev => ({ ...prev, category: value as Debt['category'] }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Borç türü seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="credit-card">💳 Kredi Kartı</SelectItem>
+                <SelectItem value="loan">🏦 Kredi</SelectItem>
+                <SelectItem value="mortgage">🏠 Konut Kredisi</SelectItem>
+                <SelectItem value="car-loan">🚗 Araç Kredisi</SelectItem>
+                <SelectItem value="bill">📄 Fatura</SelectItem>
+                <SelectItem value="installment">🛒 Taksitli Alışveriş</SelectItem>
+                <SelectItem value="other">📋 Diğer</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="grid grid-cols-2 gap-2">
               <Input
                 type="number"
@@ -1907,32 +1945,37 @@ const BudgetApp = () => {
                   <div className="space-y-3">
                      <div className="flex items-start justify-between">
                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            {/* Priority indicator */}
-                            <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                              index === 0 ? 'bg-primary/20 text-primary font-medium' : 
-                              index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
-                              'bg-muted/30 text-muted-foreground'
-                            }`}>
-                              {index === 0 ? '🎯 Öncelik #1' : `#${index + 1}`}
-                            </div>
-                            
-                            {editingDebtId === debt.id ? (
-                              <Input
-                                value={editDebtForm.description}
-                                onChange={(e) => setEditDebtForm(prev => ({ ...prev, description: e.target.value }))}
-                                className="text-base font-medium"
-                              />
-                            ) : (
-                              <h3 className="font-medium">{debt.description}</h3>
-                            )}
-                            {isWarning && (
-                              <Badge variant="destructive" className="text-xs">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                {warningText}
-                              </Badge>
-                            )}
-                          </div>
+                           <div className="flex items-center gap-2">
+                             {/* Debt category icon */}
+                             <div className="text-primary">
+                               {getDebtCategoryIcon(debt.category || 'other')}
+                             </div>
+                             
+                             {/* Priority indicator */}
+                             <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                               index === 0 ? 'bg-primary/20 text-primary font-medium' : 
+                               index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
+                               'bg-muted/30 text-muted-foreground'
+                             }`}>
+                               {index === 0 ? '🎯 Öncelik #1' : `#${index + 1}`}
+                             </div>
+                             
+                             {editingDebtId === debt.id ? (
+                               <Input
+                                 value={editDebtForm.description}
+                                 onChange={(e) => setEditDebtForm(prev => ({ ...prev, description: e.target.value }))}
+                                 className="text-base font-medium"
+                               />
+                             ) : (
+                               <h3 className="font-medium">{debt.description}</h3>
+                             )}
+                             {isWarning && (
+                               <Badge variant="destructive" className="text-xs">
+                                 <AlertTriangle className="w-3 h-3 mr-1" />
+                                 {warningText}
+                               </Badge>
+                             )}
+                           </div>
                          {editingDebtId === debt.id ? (
                            <div className="grid grid-cols-3 gap-2 mt-2">
                              <Input
