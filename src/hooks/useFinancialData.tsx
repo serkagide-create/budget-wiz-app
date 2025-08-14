@@ -395,6 +395,53 @@ export const useFinancialData = () => {
     toast({ title: "Başarılı", description: "Borç silindi" });
   };
 
+  const updateDebt = async (id: string, updates: Partial<Omit<Debt, 'id' | 'payments'>>) => {
+    if (!user) return;
+    
+    const { data, error } = await (supabase as any)
+      .from('debts')
+      .update({
+        description: updates.description,
+        total_amount: updates.totalAmount,
+        due_date: updates.dueDate,
+        installment_count: updates.installmentCount,
+        monthly_repeat: updates.monthlyRepeat,
+        next_payment_date: updates.nextPaymentDate,
+        category: updates.category
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating debt:', error);
+      toast({
+        title: "Hata",
+        description: "Borç güncellenirken bir hata oluştu.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setDebts(prev => prev.map(debt => 
+      debt.id === id 
+        ? {
+            ...debt,
+            description: data.description,
+            totalAmount: Number(data.total_amount),
+            dueDate: data.due_date,
+            installmentCount: data.installment_count,
+            monthlyRepeat: data.monthly_repeat || false,
+            nextPaymentDate: data.next_payment_date || undefined,
+            category: data.category as Debt['category'] || 'other'
+          }
+        : debt
+    ));
+    
+    toast({ title: "Başarılı", description: "Borç güncellendi" });
+  };
+
   // Saving goals operations
   const addSavingGoal = async (goal: Omit<SavingGoal, 'id'>) => {
     if (!user) return;
@@ -541,6 +588,7 @@ export const useFinancialData = () => {
     addDebt,
     addPayment,
     deleteDebt,
+    updateDebt,
     addSavingGoal,
     updateSavingGoal,
     deleteSavingGoal,

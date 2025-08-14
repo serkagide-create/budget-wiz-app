@@ -198,6 +198,7 @@ const BudgetApp = () => {
     addDebt,
     addPayment,
     deleteDebt,
+    updateDebt,
     addSavingGoal,
     updateSavingGoal,
     deleteSavingGoal,
@@ -241,7 +242,7 @@ const BudgetApp = () => {
   
   // Edit States
   const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
-  const [editDebtForm, setEditDebtForm] = useState({ description: '', totalAmount: '', dueDate: '', installmentCount: '' });
+  const [editDebtForm, setEditDebtForm] = useState({ description: '', totalAmount: '', dueDate: '', installmentCount: '', category: 'other' as Debt['category'] });
 
   // Form submission handlers
   const handleAddIncome = async () => {
@@ -337,7 +338,8 @@ const BudgetApp = () => {
       description: debt.description,
       totalAmount: debt.totalAmount.toString(),
       dueDate: debt.dueDate.split('T')[0], // Format date for input
-      installmentCount: debt.installmentCount.toString()
+      installmentCount: debt.installmentCount.toString(),
+      category: debt.category || 'other'
     });
   };
 
@@ -348,31 +350,17 @@ const BudgetApp = () => {
     }
 
     try {
-      const updatedData = {
+      await updateDebt(editingDebtId, {
         description: editDebtForm.description,
         totalAmount: parseFloat(editDebtForm.totalAmount),
         dueDate: editDebtForm.dueDate,
-        installmentCount: parseInt(editDebtForm.installmentCount)
-      };
-
-      // Since there's no updateDebt function in the hook, we need to use raw Supabase update
-      const { error } = await supabase
-        .from('debts')
-        .update({
-          description: updatedData.description,
-          total_amount: updatedData.totalAmount,
-          due_date: updatedData.dueDate,
-          installment_count: updatedData.installmentCount,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingDebtId);
-
-      if (error) throw error;
+        installmentCount: parseInt(editDebtForm.installmentCount),
+        category: editDebtForm.category
+      });
 
       setEditingDebtId(null);
-      setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '' });
+      setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '', category: 'other' });
       toast({ title: "Başarılı", description: "Borç güncellendi" });
-      refreshData(); // Refresh data to show updated debt
     } catch (error) {
       toast({ title: "Hata", description: "Borç güncellenirken hata oluştu", variant: "destructive" });
     }
@@ -380,7 +368,7 @@ const BudgetApp = () => {
 
   const handleCancelDebtEdit = () => {
     setEditingDebtId(null);
-    setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '' });
+    setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '', category: 'other' });
   };
 
   // Local Storage Functions
