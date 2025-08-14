@@ -1022,7 +1022,7 @@ const BudgetApp = () => {
 
 
   // Pay installment function
-  const payInstallment = (debtId: string) => {
+  const payInstallment = async (debtId: string) => {
     const debt = debts.find(d => d.id === debtId);
     if (!debt) return;
 
@@ -1038,13 +1038,6 @@ const BudgetApp = () => {
       return;
     }
 
-    const newPayment: Payment = {
-      id: Date.now().toString(),
-      amount: installmentAmount,
-      date: new Date().toISOString()
-    };
-
-    // This function should use the hook instead of setState
     try {
       await addPayment(debtId, {
         amount: installmentAmount,
@@ -1056,13 +1049,25 @@ const BudgetApp = () => {
     }
   };
 
+  const makeCustomPayment = async (debtId: string, amount: number) => {
+    try {
+      await addPayment(debtId, {
+        amount: amount,
+        date: new Date().toISOString()
+      });
+      toast({ title: "Başarılı", description: `Ödeme yapıldı: ${formatCurrency(amount)}` });
+    } catch (error) {
+      toast({ title: "Hata", description: "Ödeme eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
   // Check and process automatic monthly incomes and payments
   useEffect(() => {
-    const checkAutoIncomes = () => {
+    const checkAutoIncomes = async () => {
       const today = new Date();
       const todayStr = today.toDateString();
       
-      incomes.forEach(income => {
+      for (const income of incomes) {
         if (income.monthlyRepeat && income.nextIncomeDate) {
           const nextIncomeDate = new Date(income.nextIncomeDate);
           const nextIncomeStr = nextIncomeDate.toDateString();
@@ -1078,11 +1083,14 @@ const BudgetApp = () => {
               nextIncomeDate: new Date(today.getFullYear(), today.getMonth() + 1, today.getDate()).toISOString()
             };
 
-            setIncomes(prev => prev.map(i => 
-              i.id === income.id 
-                ? { ...i, nextIncomeDate: newIncome.nextIncomeDate }
-                : i
-            ).concat(newIncome));
+            await addIncome({
+              description: income.description,
+              amount: income.amount,
+              date: new Date().toISOString(),
+              category: income.category,
+              monthlyRepeat: true,
+              nextIncomeDate: new Date(today.getFullYear(), today.getMonth() + 1, today.getDate()).toISOString()
+            });
 
             toast({ 
               title: "Otomatik Gelir", 
@@ -1090,16 +1098,16 @@ const BudgetApp = () => {
             });
           }
         }
-      });
+      }
     };
 
-    const checkAutoPayments = () => {
+    const checkAutoPayments = async () => {
       const today = new Date();
       const todayStr = today.toDateString();
       
       // Check if today is the 15th
       if (today.getDate() === 15) {
-        debts.forEach(debt => {
+        for (const debt of debts) {
           if (debt.monthlyRepeat && debt.nextPaymentDate) {
             const nextPaymentDate = new Date(debt.nextPaymentDate);
             const nextPaymentStr = nextPaymentDate.toDateString();
@@ -1123,15 +1131,10 @@ const BudgetApp = () => {
                     date: new Date().toISOString()
                   };
 
-                  setDebts(prev => prev.map(d => 
-                    d.id === debt.id 
-                      ? { 
-                          ...d, 
-                          payments: [newPayment, ...d.payments],
-                          nextPaymentDate: new Date(today.getFullYear(), today.getMonth() + 1, 15).toISOString()
-                        }
-                      : d
-                  ));
+                  await addPayment(debt.id, {
+                    amount: installmentAmount,
+                    date: new Date().toISOString()
+                  });
 
                   toast({ 
                     title: "Otomatik Ödeme", 
@@ -1141,7 +1144,7 @@ const BudgetApp = () => {
               }
             }
           }
-        });
+        }
       }
     };
 
@@ -1459,26 +1462,27 @@ const BudgetApp = () => {
                     <Button 
                       size="sm" 
                       className="mt-2"
-                      onClick={() => {
+                      onClick={async () => {
                         const amount = rec.action.amount;
                         const debtId = rec.action.debtId;
                         
-                        const newPayment = {
-                          id: Date.now().toString(),
-                          amount: amount,
-                          date: new Date().toISOString()
-                        };
+                        try {
+                          await addPayment(debtId, {
+                            amount: amount,
+                            date: new Date().toISOString()
+                          });
 
-                        setDebts(prev => prev.map(d => 
-                          d.id === debtId 
-                            ? { ...d, payments: [newPayment, ...d.payments] }
-                            : d
-                        ));
-
-                        toast({ 
-                          title: "Ödeme Yapıldı", 
-                          description: `${formatCurrency(amount)} ödeme eklendi` 
-                        });
+                          toast({ 
+                            title: "Ödeme Yapıldı", 
+                            description: `${formatCurrency(amount)} ödeme eklendi` 
+                          });
+                        } catch (error) {
+                          toast({ 
+                            title: "Hata", 
+                            description: "Ödeme eklenirken hata oluştu", 
+                            variant: "destructive" 
+                          });
+                        }
                       }}
                     >
                       Önerilen Ödemeyi Yap ({formatCurrency(rec.action.amount)})
