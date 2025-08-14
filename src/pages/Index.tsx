@@ -219,6 +219,92 @@ const BudgetApp = () => {
   });
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
 
+  // Form submission handlers
+  const handleAddIncome = async () => {
+    if (!incomeForm.description || !incomeForm.amount || !incomeForm.category) {
+      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await addIncome({
+        description: incomeForm.description,
+        amount: parseFloat(incomeForm.amount),
+        date: incomeForm.date,
+        category: incomeForm.category,
+        monthlyRepeat: incomeForm.monthlyRepeat,
+        nextIncomeDate: incomeForm.monthlyRepeat ? 
+          new Date(new Date(incomeForm.date).setMonth(new Date(incomeForm.date).getMonth() + 1)).toISOString() : 
+          undefined
+      });
+      
+      setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
+      toast({ title: "Başarılı", description: "Gelir eklendi" });
+    } catch (error) {
+      toast({ title: "Hata", description: "Gelir eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+  const handleAddDebt = async () => {
+    if (!debtForm.description || !debtForm.amount || !debtForm.dueDate || !debtForm.installmentCount) {
+      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await addDebt({
+        description: debtForm.description,
+        totalAmount: parseFloat(debtForm.amount),
+        dueDate: debtForm.dueDate,
+        installmentCount: parseInt(debtForm.installmentCount),
+        monthlyRepeat: debtForm.monthlyRepeat,
+        nextPaymentDate: debtForm.monthlyRepeat ? 
+          new Date(new Date(debtForm.dueDate).setMonth(new Date(debtForm.dueDate).getMonth() + 1)).toISOString() : 
+          undefined
+      });
+      
+      setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false });
+      toast({ title: "Başarılı", description: "Borç eklendi" });
+    } catch (error) {
+      toast({ title: "Hata", description: "Borç eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+  const handleAddSavingGoal = async () => {
+    if (!savingForm.title || !savingForm.targetAmount || !savingForm.category || !savingForm.deadline) {
+      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await addSavingGoal({
+        title: savingForm.title,
+        category: savingForm.category,
+        targetAmount: parseFloat(savingForm.targetAmount),
+        currentAmount: 0,
+        deadline: savingForm.deadline
+      });
+      
+      setSavingForm({ title: '', targetAmount: '', category: 'house', deadline: '' });
+      toast({ title: "Başarılı", description: "Birikim hedefi eklendi" });
+    } catch (error) {
+      toast({ title: "Hata", description: "Birikim hedefi eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+  const handleAddSavingAmount = async (goalId: string, amount: number) => {
+    try {
+      const goal = savingGoals.find(g => g.id === goalId);
+      if (!goal) return;
+      
+      const newCurrentAmount = goal.currentAmount + amount;
+      await updateSavingGoal(goalId, { currentAmount: newCurrentAmount });
+      toast({ title: "Başarılı", description: `${formatCurrency(amount)} eklendi` });
+    } catch (error) {
+      toast({ title: "Hata", description: "Tutar eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
   // Local Storage Functions
   const saveToStorage = (key: string, data: any) => {
     try {
@@ -958,13 +1044,16 @@ const BudgetApp = () => {
       date: new Date().toISOString()
     };
 
-    setDebts(prev => prev.map(d => 
-      d.id === debtId 
-        ? { ...d, payments: [newPayment, ...d.payments] }
-        : d
-    ));
-
-    toast({ title: "Başarılı", description: `Taksit ödendi: ${formatCurrency(installmentAmount)}` });
+    // This function should use the hook instead of setState
+    try {
+      await addPayment(debtId, {
+        amount: installmentAmount,
+        date: new Date().toISOString()
+      });
+      toast({ title: "Başarılı", description: `Taksit ödendi: ${formatCurrency(installmentAmount)}` });
+    } catch (error) {
+      toast({ title: "Hata", description: "Ödeme eklenirken hata oluştu", variant: "destructive" });
+    }
   };
 
   // Check and process automatic monthly incomes and payments
@@ -1532,7 +1621,7 @@ const BudgetApp = () => {
                 Her ay tekrarlansın (aynı tarihte otomatik ekle)
               </Label>
             </div>
-            <Button onClick={addIncome} className="w-full">
+            <Button onClick={handleAddIncome} className="w-full">
               <PlusCircle className="w-4 h-4 mr-2" />
               Gelir Ekle
             </Button>
@@ -1680,7 +1769,7 @@ const BudgetApp = () => {
                 value={debtForm.dueDate}
                 onChange={(e) => setDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
               />
-              <Button onClick={addDebt}>
+              <Button onClick={handleAddDebt}>
                 <PlusCircle className="w-4 h-4" />
               </Button>
             </div>
@@ -1819,7 +1908,16 @@ const BudgetApp = () => {
                             value={paymentForms[debt.id] || ''}
                             onChange={(e) => setPaymentForms(prev => ({ ...prev, [debt.id]: e.target.value }))}
                           />
-                          <Button onClick={() => addPayment(debt.id)} size="sm">
+                          <Button 
+                            onClick={() => {
+                              const amount = parseFloat(paymentForms[debt.id] || '0');
+                              if (amount > 0) {
+                                makeCustomPayment(debt.id, amount);
+                                setPaymentForms(prev => ({ ...prev, [debt.id]: '' }));
+                              }
+                            }} 
+                            size="sm"
+                          >
                             Öde
                           </Button>
                         </div>
@@ -1844,7 +1942,9 @@ const BudgetApp = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => deletePayment(debt.id, payment.id)}
+                                onClick={() => {
+                                  toast({ title: "Bilgi", description: "Ödeme silme özelliği henüz mevcut değil", variant: "default" });
+                                }}
                                 className="h-6 w-6 p-0"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -1989,7 +2089,7 @@ const BudgetApp = () => {
                 value={savingForm.deadline}
                 onChange={(e) => setSavingForm(prev => ({ ...prev, deadline: e.target.value }))}
               />
-              <Button onClick={addSavingGoal}>
+              <Button onClick={handleAddSavingGoal}>
                 <PlusCircle className="w-4 h-4" />
               </Button>
             </div>
@@ -2057,7 +2157,7 @@ const BudgetApp = () => {
                             if (e.key === 'Enter') {
                               const amount = parseFloat(e.currentTarget.value) || 0;
                               if (amount > 0) {
-                                addSavingAmount(goal.id, amount);
+                               handleAddSavingAmount(goal.id, amount);
                                 e.currentTarget.value = '';
                               }
                             }
@@ -2068,7 +2168,7 @@ const BudgetApp = () => {
                             const input = e.currentTarget.parentElement?.querySelector('input') as HTMLInputElement;
                             const amount = parseFloat(input?.value || '0');
                             if (amount > 0) {
-                              addSavingAmount(goal.id, amount);
+                              handleAddSavingAmount(goal.id, amount);
                               if (input) input.value = '';
                             }
                           }}
@@ -2172,13 +2272,21 @@ const BudgetApp = () => {
                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                      settings.debtStrategy === 'snowball' ? 'border-primary bg-primary/10' : 'border-border'
                    }`}
-                   onClick={() => setSettings(prev => ({ ...prev, debtStrategy: 'snowball' }))}
+                    onClick={() => {
+                      if (settings) {
+                        updateSettings({ ...settings, debtStrategy: 'snowball' });
+                      }
+                    }}
                  >
                    <div className="flex items-center gap-2">
                      <input
                        type="radio"
                        checked={settings.debtStrategy === 'snowball'}
-                       onChange={() => setSettings(prev => ({ ...prev, debtStrategy: 'snowball' }))}
+                        onChange={() => {
+                          if (settings) {
+                            updateSettings({ ...settings, debtStrategy: 'snowball' });
+                          }
+                        }}
                        className="w-4 h-4"
                      />
                      <div>
@@ -2192,13 +2300,21 @@ const BudgetApp = () => {
                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                      settings.debtStrategy === 'avalanche' ? 'border-primary bg-primary/10' : 'border-border'
                    }`}
-                   onClick={() => setSettings(prev => ({ ...prev, debtStrategy: 'avalanche' }))}
-                 >
-                   <div className="flex items-center gap-2">
+                    onClick={() => {
+                      if (settings) {
+                        updateSettings({ ...settings, debtStrategy: 'avalanche' });
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
                      <input
                        type="radio"
                        checked={settings.debtStrategy === 'avalanche'}
-                       onChange={() => setSettings(prev => ({ ...prev, debtStrategy: 'avalanche' }))}
+                        onChange={() => {
+                          if (settings) {
+                            updateSettings({ ...settings, debtStrategy: 'avalanche' });
+                          }
+                        }}
                        className="w-4 h-4"
                      />
                      <div>
@@ -2231,7 +2347,11 @@ const BudgetApp = () => {
                  max={100}
                  step={5}
                  value={[settings.debtPercentage]}
-                 onValueChange={(value) => setSettings(prev => ({ ...prev, debtPercentage: value[0] }))}
+                  onValueChange={(value) => {
+                    if (settings) {
+                      updateSettings({ ...settings, debtPercentage: value[0] });
+                    }
+                  }}
                  className="mt-2"
                />
                <div className="text-sm text-muted-foreground mt-1">
@@ -2247,7 +2367,11 @@ const BudgetApp = () => {
                  max={100}
                  step={5}
                  value={[settings.savingsPercentage]}
-                 onValueChange={(value) => setSettings(prev => ({ ...prev, savingsPercentage: value[0] }))}
+                  onValueChange={(value) => {
+                    if (settings) {
+                      updateSettings({ ...settings, savingsPercentage: value[0] });
+                    }
+                  }}
                  className="mt-2"
                />
                <div className="text-sm text-muted-foreground mt-1">
