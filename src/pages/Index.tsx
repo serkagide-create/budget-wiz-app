@@ -2123,7 +2123,8 @@ const BudgetApp = () => {
           </Accordion>
         </>
       )}
-            const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+      {/* Başarı Rozetleri - Borç Yönetimi */}
             const remaining = debt.totalAmount - totalPaid;
             const progress = (totalPaid / debt.totalAmount) * 100;
             const daysLeft = getDaysUntilDue(debt.dueDate);
@@ -2448,7 +2449,6 @@ const BudgetApp = () => {
             </Accordion>
           </div>
         )}
-      )}
 
       {/* Başarı Rozetleri - Borç Yönetimi */}
       {debts.length > 0 && (
@@ -2469,8 +2469,7 @@ const BudgetApp = () => {
         </div>
       )}
     </div>
-    );
-  };
+  );
 
   const renderSavingGoals = () => (
     <div className="space-y-4">
