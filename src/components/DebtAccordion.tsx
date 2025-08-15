@@ -63,50 +63,71 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = ({
         }
 
         return (
-          <AccordionItem key={debt.id} value={debt.id} className={`border rounded-lg ${isWarning ? 'border-destructive' : 'border-border'}`}>
-            <AccordionTrigger className="hover:no-underline px-4 py-3">
-              <div className="flex items-center justify-between w-full mr-2">
-                <div className="flex items-center gap-3">
-                  <div className="text-primary text-lg">
-                    {getDebtCategoryIcon(debt.category || 'other')}
-                  </div>
-                  <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                    index === 0 ? 'bg-primary/20 text-primary font-medium' : 
-                    index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
-                    'bg-muted/30 text-muted-foreground'
-                  }`}>
-                    {index === 0 ? '🎯 #1' : `#${index + 1}`}
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-medium">{debt.description}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Kalan: {formatCurrency(remaining)} • {progress.toFixed(0)}% tamamlandı
-                    </p>
+          <AccordionItem key={debt.id} value={debt.id} className={`border rounded-lg ${isWarning ? 'border-destructive bg-destructive/5' : 'border-border bg-card/50'} overflow-hidden`}>
+            <AccordionTrigger className="hover:no-underline p-0">
+              <div className="w-full">
+                {/* Header with debt name */}
+                <div className="bg-muted/30 px-4 py-2 border-b">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="text-primary">
+                        {getDebtCategoryIcon(debt.category || 'other')}
+                      </div>
+                      <h3 className="font-semibold text-foreground">{debt.description}</h3>
+                      <div className={`text-xs px-2 py-1 rounded-full ${
+                        index === 0 ? 'bg-primary text-primary-foreground' : 
+                        index === 1 ? 'bg-secondary text-secondary-foreground' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {index === 0 ? '🎯 #1' : `#${index + 1}`}
+                      </div>
+                    </div>
+                    {isWarning && (
+                      <Badge variant="destructive" className="text-xs">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        {warningText}
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {isWarning && (
-                    <Badge variant="destructive" className="text-xs">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      {warningText}
-                    </Badge>
-                  )}
-                  {progress >= 100 ? (
-                    <Badge className="bg-green-100 text-green-800">
-                      ✅ Tamamlandı
-                    </Badge>
-                  ) : (
-                    <Button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        payInstallment(debt.id);
-                      }} 
-                      variant="outline"
-                      size="sm"
-                    >
-                      {formatCurrency(Math.min(Math.ceil(debt.totalAmount / debt.installmentCount), remaining))} Öde
-                    </Button>
-                  )}
+                
+                {/* Content with progress and action */}
+                <div className="px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Kalan:</span>
+                          <span className="font-bold text-expense ml-1">{formatCurrency(remaining)}</span>
+                        </div>
+                        <div className="flex-1 max-w-32">
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <span>{progress.toFixed(0)}%</span>
+                          </div>
+                          <Progress value={progress} className="h-1.5" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-4">
+                      {progress >= 100 ? (
+                        <Badge className="bg-income text-income-foreground">
+                          ✅ Tamamlandı
+                        </Badge>
+                      ) : (
+                        <Button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            payInstallment(debt.id);
+                          }} 
+                          size="sm"
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          {formatCurrency(Math.min(Math.ceil(debt.totalAmount / debt.installmentCount), remaining))} Öde
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </AccordionTrigger>
