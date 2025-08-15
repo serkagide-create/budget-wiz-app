@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { FinancialHealthScore } from '@/components/FinancialHealthScore';
 import { AchievementBadges } from '@/components/AchievementBadges';
+import { DebtAccordion } from '@/components/DebtAccordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTriggerTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from "next-themes";
+import { cn, formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
 import { 
   PlusCircle, 
   Trash2, 
@@ -2124,331 +2126,29 @@ const BudgetApp = () => {
         </>
       )}
 
-      {/* Başarı Rozetleri - Borç Yönetimi */}
-            const remaining = debt.totalAmount - totalPaid;
-            const progress = (totalPaid / debt.totalAmount) * 100;
-            const daysLeft = getDaysUntilDue(debt.dueDate);
-            
-            let isWarning = false;
-            let warningText = '';
-            
-            if (daysLeft < 0) {
-              isWarning = true;
-              warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
-            } else if (daysLeft === 0) {
-              isWarning = true;
-              warningText = 'Son gün!';
-            } else if (daysLeft <= 3) {
-              isWarning = true;
-              warningText = `${daysLeft} gün kaldı!`;
-            }
-
-            return (
-              <AccordionItem key={debt.id} value={debt.id} className={`border rounded-lg ${isWarning ? 'border-destructive' : 'border-border'}`}>
-                <AccordionTrigger className="hover:no-underline px-4 py-3">
-                  <div className="flex items-center justify-between w-full mr-2">
-                    <div className="flex items-center gap-3">
-                      {/* Debt category icon */}
-                      <div className="text-primary text-lg">
-                        {getDebtCategoryIcon(debt.category || 'other')}
-                      </div>
-                      
-                      {/* Priority indicator */}
-                      <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                        index === 0 ? 'bg-primary/20 text-primary font-medium' : 
-                        index === 1 ? 'bg-secondary/50 text-secondary-foreground' :
-                        'bg-muted/30 text-muted-foreground'
-                      }`}>
-                        {index === 0 ? '🎯 #1' : `#${index + 1}`}
-                      </div>
-                      
-                      <div className="text-left">
-                        <h3 className="font-medium">{debt.description}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Kalan: {formatCurrency(remaining)} • {progress.toFixed(0)}% tamamlandı
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {isWarning && (
-                        <Badge variant="destructive" className="text-xs">
-                          <AlertTriangle className="w-3 h-3 mr-1" />
-                          {warningText}
-                        </Badge>
-                      )}
-                      
-                      {progress >= 100 ? (
-                        <Badge className="bg-income text-income-foreground">
-                          ✅ Tamamlandı
-                        </Badge>
-                      ) : (
-                        <Button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            payInstallment(debt.id);
-                          }} 
-                          variant="outline"
-                          size="sm"
-                        >
-                          {formatCurrency(Math.min(Math.ceil(debt.totalAmount / debt.installmentCount), remaining))} Öde
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                
-                <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-4">
-                    {/* Progress Bar */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>İlerleme ({progress.toFixed(0)}%)</span>
-                        <span>{formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}</span>
-                      </div>
-                      <Progress value={progress} className="h-2" />
-                    </div>
-
-                    {/* Debt Details */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Son Ödeme Tarihi</p>
-                        <p className="font-medium">{formatDate(debt.dueDate)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Taksit Sayısı</p>
-                        <p className="font-medium">{debt.installmentCount} taksit</p>
-                      </div>
-                    </div>
-
-                    {/* Edit Mode */}
-                    {editingDebtId === debt.id && (
-                      <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-                        <Input
-                          value={editDebtForm.description}
-                          onChange={(e) => setEditDebtForm(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Borç açıklaması"
-                        />
-                        <div className="grid grid-cols-3 gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Tutar"
-                            value={editDebtForm.totalAmount}
-                            onChange={(e) => setEditDebtForm(prev => ({ ...prev, totalAmount: e.target.value }))}
-                          />
-                          <Input
-                            type="date"
-                            value={editDebtForm.dueDate}
-                            onChange={(e) => setEditDebtForm(prev => ({ ...prev, dueDate: e.target.value }))}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Taksit"
-                            value={editDebtForm.installmentCount}
-                            onChange={(e) => setEditDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={handleSaveDebtEdit}
-                          >
-                            <Check className="w-4 h-4 mr-1" />
-                            Kaydet
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCancelDebtEdit}
-                          >
-                            İptal
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Payment Actions */}
-                    {progress < 100 && (
-                      <div className="space-y-3">
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => payInstallment(debt.id)} 
-                            variant="default"
-                            size="sm"
-                            className="flex-1"
-                          >
-                            Taksit Öde ({formatCurrency(Math.min(Math.ceil(debt.totalAmount / debt.installmentCount), remaining))})
-                          </Button>
-                        </div>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Özel tutar girin"
-                            type="number"
-                            value={paymentForms[debt.id] || ''}
-                            onChange={(e) => setPaymentForms(prev => ({ ...prev, [debt.id]: e.target.value }))}
-                            className="flex-1"
-                          />
-                          <Button 
-                            onClick={() => {
-                              const amount = parseFloat(paymentForms[debt.id] || '0');
-                              if (amount > 0) {
-                                makeCustomPayment(debt.id, amount);
-                                setPaymentForms(prev => ({ ...prev, [debt.id]: '' }));
-                              }
-                            }} 
-                            size="sm"
-                            disabled={!paymentForms[debt.id] || parseFloat(paymentForms[debt.id] || '0') <= 0}
-                          >
-                            Öde
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Payment History */}
-                    {debt.payments.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">
-                          Ödeme Geçmişi ({debt.payments.length}/{debt.installmentCount})
-                        </p>
-                        <div className="space-y-1 max-h-32 overflow-y-auto">
-                          {debt.payments.map((payment, index) => (
-                            <div key={payment.id} className="flex justify-between items-center text-xs bg-secondary/30 p-2 rounded">
-                              <div className="flex items-center gap-2">
-                                <Check className="w-3 h-3 text-green-500" />
-                                <span className="font-medium">{formatCurrency(payment.amount)}</span>
-                                <span className="text-muted-foreground">
-                                  {new Date(payment.date).toLocaleDateString('tr-TR')}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-2 border-t">
-                      {editingDebtId === debt.id ? null : (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditDebt(debt)}
-                          >
-                            <Edit className="w-4 h-4 mr-1" />
-                            Düzenle
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteDebt(debt.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Sil
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
-
-        {/* Show completed debts separately */}
-        {debts.filter(debt => {
-          const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
-          return totalPaid >= debt.totalAmount;
-        }).length > 0 && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 border-t border-muted"></div>
-              <span className="text-sm text-muted-foreground">Tamamlanan Borçlar</span>
-              <div className="flex-1 border-t border-muted"></div>
-            </div>
-            
-            <Accordion type="multiple" className="space-y-2">
-              {debts.filter(debt => {
-                const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
-                return totalPaid >= debt.totalAmount;
-              }).map((debt) => {
-                const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
-
-                return (
-                  <AccordionItem key={`completed-${debt.id}`} value={`completed-${debt.id}`} className="border rounded-lg opacity-75 border-income/20">
-                    <AccordionTrigger className="hover:no-underline px-4 py-3">
-                      <div className="flex items-center justify-between w-full mr-2">
-                        <div className="flex items-center gap-3">
-                          <div className="text-primary text-lg">
-                            {getDebtCategoryIcon(debt.category || 'other')}
-                          </div>
-                          <div className="bg-income/20 text-income text-xs px-2 py-1 rounded font-medium">
-                            ✅ Tamamlandı
-                          </div>
-                          <h3 className="font-medium">{debt.description}</h3>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatCurrency(debt.totalAmount)} • {formatDate(debt.dueDate)}
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    
-                    <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>İlerleme (100%)</span>
-                            <span>{formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}</span>
-                          </div>
-                          <Progress value={100} className="h-2" />
-                        </div>
-
-                        {/* Payment History */}
-                        {debt.payments.length > 0 && (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">
-                              Ödeme Geçmişi ({debt.payments.length}/{debt.installmentCount})
-                            </p>
-                            <div className="space-y-1 max-h-32 overflow-y-auto">
-                              {debt.payments.map((payment) => (
-                                <div key={payment.id} className="flex justify-between items-center text-xs bg-secondary/30 p-2 rounded">
-                                  <div className="flex items-center gap-2">
-                                    <Check className="w-3 h-3 text-green-500" />
-                                    <span className="font-medium">{formatCurrency(payment.amount)}</span>
-                                    <span className="text-muted-foreground">
-                                      {new Date(payment.date).toLocaleDateString('tr-TR')}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-2 pt-2 border-t">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteDebt(debt.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Sil
-                          </Button>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </div>
-        )}
+      {/* Debt List */}
+      {debts.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Henüz borç eklenmemiş
+        </div>
+      ) : (
+        <DebtAccordion
+          debts={debts}
+          sortedDebts={getSortedDebts()}
+          editingDebtId={editingDebtId}
+          editDebtForm={editDebtForm}
+          paymentForms={paymentForms}
+          getDebtCategoryIcon={getDebtCategoryIcon}
+          setEditDebtForm={setEditDebtForm}
+          setPaymentForms={setPaymentForms}
+          handleEditDebt={handleEditDebt}
+          handleSaveDebtEdit={handleSaveDebtEdit}
+          handleCancelDebtEdit={handleCancelDebtEdit}
+          payInstallment={payInstallment}
+          makeCustomPayment={makeCustomPayment}
+          deleteDebt={deleteDebt}
+        />
+      )}
 
       {/* Başarı Rozetleri - Borç Yönetimi */}
       {debts.length > 0 && (
