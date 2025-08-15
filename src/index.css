@@ -27,7 +27,7 @@
     --accent: 210 40% 95%;
     --accent-foreground: 222.2 84% 4.9%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 14 85% 65%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 214.3 31.8% 91.4%;
@@ -36,20 +36,23 @@
 
     --radius: 0.75rem;
 
-    /* Financial App Custom Colors */
-    --income: 142.1 76.2% 36.3%;
+    /* Financial App Custom Colors - Soft & Eye-friendly Palette */
+    --income: 150 50% 55%;
     --income-foreground: 0 0% 98%;
-    --income-light: 142.1 70% 45%;
+    --income-light: 150 45% 65%;
 
-    --expense: 24.6 95% 53.1%;
+    --expense: 25 75% 70%;
     --expense-foreground: 0 0% 98%;
-    --expense-light: 24.6 90% 60%;
+    --expense-light: 25 70% 80%;
 
-    --savings: 213.3 93.9% 67.8%;
+    --savings: 200 75% 65%;
     --savings-foreground: 0 0% 98%;
-    --savings-light: 213.3 85% 75%;
+    --savings-light: 200 70% 75%;
 
-    --warning: 38 92% 50%;
+    --success: 145 60% 55%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 35 75% 65%;
     --warning-foreground: 0 0% 98%;
 
     /* Gradients */
@@ -108,12 +111,23 @@
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 14 75% 50%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
+    /* Dark mode financial colors - Soft & Eye-friendly */
+    --income: 150 45% 50%;
+    --income-light: 150 40% 60%;
+    --expense: 25 70% 60%;
+    --expense-light: 25 65% 70%;
+    --savings: 200 70% 60%;
+    --savings-light: 200 65% 70%;
+    --success: 145 55% 50%;
+    --warning: 35 70% 60%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -135,8 +149,12 @@
   }
 }
 
-/* Landing Page Animations */
+/* Landing Page & General Animations */
 @layer components {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
   .animate-fade-in-up {
     animation: fadeInUp 0.8s ease-out forwards;
   }
@@ -212,6 +230,15 @@
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: xor;
     -webkit-mask-composite: xor;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
