@@ -552,19 +552,42 @@ export const useFinancialData = () => {
   const updateSettings = async (newSettings: Settings) => {
     if (!user) return;
     
-    const { data, error } = await (supabase as any)
+    // First try to update existing record
+    const { data: updateData, error: updateError } = await (supabase as any)
       .from('user_settings')
-      .upsert({
-        user_id: user.id,
+      .update({
         debt_percentage: newSettings.debtPercentage,
         savings_percentage: newSettings.savingsPercentage,
         debt_strategy: newSettings.debtStrategy
       })
+      .eq('user_id', user.id)
       .select()
       .single();
     
-    if (error) {
-      console.error('Error updating settings:', error);
+    // If no record exists, insert a new one
+    if (updateError && updateError.code === 'PGRST116') {
+      const { data, error } = await (supabase as any)
+        .from('user_settings')
+        .insert({
+          user_id: user.id,
+          debt_percentage: newSettings.debtPercentage,
+          savings_percentage: newSettings.savingsPercentage,
+          debt_strategy: newSettings.debtStrategy
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error inserting settings:', error);
+        toast({
+          title: "Hata",
+          description: "Ayarlar kaydedilirken bir hata oluştu.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (updateError) {
+      console.error('Error updating settings:', updateError);
       toast({
         title: "Hata",
         description: "Ayarlar güncellenirken bir hata oluştu.",
