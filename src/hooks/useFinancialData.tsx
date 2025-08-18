@@ -367,10 +367,17 @@ export const useFinancialData = () => {
     const targetDebt = debts.find(d => d.id === debtId);
     let nextPaymentDate = undefined;
     
-    if (targetDebt?.monthlyRepeat) {
+    if (targetDebt?.monthlyRepeat || targetDebt?.installmentCount) {
       const currentDate = new Date();
       const nextMonth = new Date(currentDate);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
+      
+      // Eğer due_date varsa, aynı günü koruyarak bir sonraki aya geç
+      if (targetDebt.dueDate) {
+        const dueDate = new Date(targetDebt.dueDate);
+        nextMonth.setDate(dueDate.getDate());
+      }
+      
       nextPaymentDate = nextMonth.toISOString();
       
       // Borç tablosunda da güncelle
