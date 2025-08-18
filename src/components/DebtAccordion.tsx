@@ -45,7 +45,10 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
       const totalPaid = debt.payments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
       const remaining = debt.totalAmount - totalPaid;
       const progress = (totalPaid / debt.totalAmount) * 100;
-      const daysLeft = getDaysUntilDue(debt.dueDate);
+      
+      // Gecikme kontrolü için nextPaymentDate kullan, yoksa dueDate kullan
+      const paymentDateToCheck = debt.nextPaymentDate || debt.dueDate;
+      const daysLeft = getDaysUntilDue(paymentDateToCheck);
       
       // Sonraki ödeme tarihi hesapla
       const nextPaymentDate = debt.nextPaymentDate ? 
@@ -55,15 +58,18 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
       let isWarning = false;
       let warningText = '';
       
-      if (daysLeft < 0) {
-        isWarning = true;
-        warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
-      } else if (daysLeft === 0) {
-        isWarning = true;
-        warningText = 'Son gün!';
-      } else if (daysLeft <= 3) {
-        isWarning = true;
-        warningText = `${daysLeft} gün kaldı!`;
+      // Borç tamamlanmadıysa gecikme kontrolü yap
+      if (progress < 100) {
+        if (daysLeft < 0) {
+          isWarning = true;
+          warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
+        } else if (daysLeft === 0) {
+          isWarning = true;
+          warningText = 'Son gün!';
+        } else if (daysLeft <= 3) {
+          isWarning = true;
+          warningText = `${daysLeft} gün kaldı!`;
+        }
       }
       
       return { debt, index, totalPaid, remaining, progress, daysLeft, isWarning, warningText, nextPaymentDate };
