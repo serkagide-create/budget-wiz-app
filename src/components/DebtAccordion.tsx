@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ interface DebtAccordionProps {
   deleteDebt: (debtId: string) => void;
 }
 
-export const DebtAccordion: React.FC<DebtAccordionProps> = ({
+export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
   debts,
   sortedDebts,
   editingDebtId,
@@ -40,27 +40,39 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = ({
   makeCustomPayment,
   deleteDebt
 }) => {
+  const debtItems = useMemo(() => 
+    sortedDebts.map((debt, index) => {
+      const totalPaid = debt.payments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
+      const remaining = debt.totalAmount - totalPaid;
+      const progress = (totalPaid / debt.totalAmount) * 100;
+      const daysLeft = getDaysUntilDue(debt.dueDate);
+      
+      // Sonraki ödeme tarihi hesapla
+      const nextPaymentDate = debt.nextPaymentDate ? 
+        formatDate(debt.nextPaymentDate) : 
+        formatDate(debt.dueDate);
+      
+      let isWarning = false;
+      let warningText = '';
+      
+      if (daysLeft < 0) {
+        isWarning = true;
+        warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
+      } else if (daysLeft === 0) {
+        isWarning = true;
+        warningText = 'Son gün!';
+      } else if (daysLeft <= 3) {
+        isWarning = true;
+        warningText = `${daysLeft} gün kaldı!`;
+      }
+      
+      return { debt, index, totalPaid, remaining, progress, daysLeft, isWarning, warningText, nextPaymentDate };
+    }), [sortedDebts]
+  );
+
   return (
     <Accordion type="multiple" className="space-y-2">
-      {sortedDebts.map((debt, index) => {
-        const totalPaid = debt.payments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
-        const remaining = debt.totalAmount - totalPaid;
-        const progress = (totalPaid / debt.totalAmount) * 100;
-        const daysLeft = getDaysUntilDue(debt.dueDate);
-        
-        let isWarning = false;
-        let warningText = '';
-        
-        if (daysLeft < 0) {
-          isWarning = true;
-          warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
-        } else if (daysLeft === 0) {
-          isWarning = true;
-          warningText = 'Son gün!';
-        } else if (daysLeft <= 3) {
-          isWarning = true;
-          warningText = `${daysLeft} gün kaldı!`;
-        }
+      {debtItems.map(({ debt, index, totalPaid, remaining, progress, daysLeft, isWarning, warningText, nextPaymentDate }) => {
 
         return (
           <AccordionItem key={debt.id} value={debt.id} className={`border rounded-lg ${isWarning ? 'border-destructive bg-destructive/5' : 'border-border bg-card/50'} overflow-hidden`}>
@@ -144,8 +156,8 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = ({
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Son Ödeme Tarihi</p>
-                    <p className="font-medium">{formatDate(debt.dueDate)}</p>
+                    <p className="text-muted-foreground">Sonraki Ödeme Tarihi</p>
+                    <p className="font-medium">{nextPaymentDate}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Taksit Sayısı</p>
@@ -275,4 +287,4 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = ({
       })}
     </Accordion>
   );
-};
+});

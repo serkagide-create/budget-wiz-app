@@ -363,9 +363,30 @@ export const useFinancialData = () => {
       debt_id: data.debt_id
     };
     
+    // Borcu bul ve sonraki ödeme tarihini hesapla
+    const targetDebt = debts.find(d => d.id === debtId);
+    let nextPaymentDate = undefined;
+    
+    if (targetDebt?.monthlyRepeat) {
+      const currentDate = new Date();
+      const nextMonth = new Date(currentDate);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      nextPaymentDate = nextMonth.toISOString();
+      
+      // Borç tablosunda da güncelle
+      await (supabase as any)
+        .from('debts')
+        .update({ next_payment_date: nextPaymentDate })
+        .eq('id', debtId);
+    }
+    
     setDebts(prev => prev.map(debt => 
       debt.id === debtId 
-        ? { ...debt, payments: [newPayment, ...debt.payments] }
+        ? { 
+            ...debt, 
+            payments: [newPayment, ...debt.payments],
+            nextPaymentDate: nextPaymentDate || debt.nextPaymentDate
+          }
         : debt
     ));
     

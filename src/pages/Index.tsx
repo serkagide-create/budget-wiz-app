@@ -334,8 +334,8 @@ const BudgetApp = () => {
     setEditDebtForm({ description: '', totalAmount: '', dueDate: '', installmentCount: '', category: 'other' });
   };
 
-  // Payment functions
-  const payInstallment = async (debtId: string) => {
+  // Payment functions with useCallback for optimization
+  const payInstallment = React.useCallback(async (debtId: string) => {
     const debt = debts.find(d => d.id === debtId);
     if (!debt) return;
     
@@ -348,24 +348,32 @@ const BudgetApp = () => {
         amount: installmentAmount,
         date: new Date().toISOString()
       });
+      
+      // Refresh data to get updated state immediately
+      await refreshData();
+      
       toast({ title: "Ödeme Yapıldı", description: `${formatCurrency(installmentAmount)} ödendi` });
     } catch (error) {
       toast({ title: "Hata", description: "Ödeme eklenirken hata oluştu", variant: "destructive" });
     }
-  };
+  }, [debts, addPayment, refreshData, toast]);
 
-  const makeCustomPayment = async (debtId: string, amount: number) => {
+  const makeCustomPayment = React.useCallback(async (debtId: string, amount: number) => {
     try {
       await addPayment(debtId, {
         amount: amount,
         date: new Date().toISOString()
       });
+      
+      // Refresh data to get updated state immediately
+      await refreshData();
+      
       setPaymentForms(prev => ({ ...prev, [debtId]: '' }));
       toast({ title: "Ödeme Yapıldı", description: `${formatCurrency(amount)} ödendi` });
     } catch (error) {
       toast({ title: "Hata", description: "Ödeme eklenirken hata oluştu", variant: "destructive" });
     }
-  };
+  }, [addPayment, refreshData, setPaymentForms, toast]);
 
   // Calculations
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
