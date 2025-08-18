@@ -126,6 +126,7 @@ export const useFinancialData = () => {
   const loadDebts = async () => {
     if (!user) return;
     
+    // First load debts
     const { data: debtsData, error: debtsError } = await (supabase as any)
       .from('debts')
       .select('*')
@@ -137,39 +138,52 @@ export const useFinancialData = () => {
       return;
     }
     
-    // Load payments for each debt
-    const debtsWithPayments: Debt[] = [];
-    for (const debt of debtsData || []) {
-      const { data: paymentsData, error: paymentsError } = await (supabase as any)
-        .from('payments')
-        .select('*')
-        .eq('debt_id', debt.id)
-        .order('date', { ascending: false });
-      
-      if (paymentsError) {
-        console.error('Error loading payments for debt:', debt.id, paymentsError);
-        continue;
+    // If no debts, just set empty array
+    if (!debtsData || debtsData.length === 0) {
+      setDebts([]);
+      return;
+    }
+    
+    // Load all payments for these debts in one query
+    const debtIds = debtsData.map((d: any) => d.id);
+    const { data: allPaymentsData, error: paymentsError } = await (supabase as any)
+      .from('payments')
+      .select('*')
+      .in('debt_id', debtIds)
+      .order('date', { ascending: false });
+    
+    if (paymentsError) {
+      console.error('Error loading payments:', paymentsError);
+      return;
+    }
+    
+    // Group payments by debt_id for efficient lookup
+    const paymentsByDebtId = new Map<string, Payment[]>();
+    (allPaymentsData || []).forEach((payment: any) => {
+      const debtId = payment.debt_id;
+      if (!paymentsByDebtId.has(debtId)) {
+        paymentsByDebtId.set(debtId, []);
       }
-      
-      const payments: Payment[] = (paymentsData || []).map((payment: any) => ({
+      paymentsByDebtId.get(debtId)?.push({
         id: payment.id,
         amount: Number(payment.amount),
         date: payment.date,
         debt_id: payment.debt_id
-      }));
-      
-      debtsWithPayments.push({
-        id: debt.id,
-        description: debt.description,
-        totalAmount: Number(debt.total_amount),
-        dueDate: debt.due_date,
-        installmentCount: debt.installment_count,
-        payments,
-        monthlyRepeat: debt.monthly_repeat || false,
-        nextPaymentDate: debt.next_payment_date || undefined,
-        category: debt.category as Debt['category'] || 'other'
       });
-    }
+    });
+    
+    // Build debts with their payments
+    const debtsWithPayments: Debt[] = debtsData.map((debt: any) => ({
+      id: debt.id,
+      description: debt.description,
+      totalAmount: Number(debt.total_amount),
+      dueDate: debt.due_date,
+      installmentCount: debt.installment_count,
+      payments: paymentsByDebtId.get(debt.id) || [],
+      monthlyRepeat: debt.monthly_repeat || false,
+      nextPaymentDate: debt.next_payment_date || undefined,
+      category: debt.category as Debt['category'] || 'other'
+    }));
     
     setDebts(debtsWithPayments);
   };
