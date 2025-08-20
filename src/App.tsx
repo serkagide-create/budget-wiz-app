@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./components/LandingPage";
+import FundTransfer from "./components/FundTransfer";
 
 const queryClient = new QueryClient();
 

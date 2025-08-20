@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { FinancialHealthScore } from '@/components/FinancialHealthScore';
 import { AchievementBadges } from '@/components/AchievementBadges';
 import { DebtAccordion } from '@/components/DebtAccordion';
+import FundTransfer from '@/components/FundTransfer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,8 @@ import {
   FileText,
   ShoppingCart,
   Receipt,
-  Edit
+  Edit,
+  ArrowLeftRight
 } from 'lucide-react';
 
 import brandLogo from '@/assets/borc-yok-logo-1.png';
@@ -108,6 +110,7 @@ const BudgetApp = () => {
     incomes,
     debts,
     savingGoals,
+    transfers,
     settings,
     loading: dataLoading,
     addIncome,
@@ -120,6 +123,7 @@ const BudgetApp = () => {
     updateSavingGoal,
     deleteSavingGoal,
     updateSettings,
+    transferFunds,
     refreshData
   } = useFinancialData();
 
@@ -130,7 +134,7 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'settings'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
 
   // AI Assistant State
@@ -1023,7 +1027,14 @@ const BudgetApp = () => {
           {activeTab === 'dashboard' && renderDashboard()}
           {activeTab === 'incomes' && renderIncomes()}
           {activeTab === 'debts' && renderDebts()}
-          {activeTab === 'goals' && renderSavingGoals()}
+          {activeTab === 'saving-goals' && renderSavingGoals()}
+          {activeTab === 'transfers' && (
+            <FundTransfer
+              settings={settings}
+              transfers={transfers}
+              onTransfer={transferFunds}
+            />
+          )}
           {activeTab === 'settings' && renderSettings()}
         </div>
       </div>
@@ -1060,13 +1071,22 @@ const BudgetApp = () => {
               <span className="text-xs">Borçlar</span>
             </button>
             <button
-              onClick={() => setActiveTab('goals')}
+              onClick={() => setActiveTab('saving-goals')}
               className={`flex flex-col items-center justify-center gap-1 ${
-                activeTab === 'goals' ? 'text-primary' : 'text-muted-foreground'
+                activeTab === 'saving-goals' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               <Wallet className="w-5 h-5" />
               <span className="text-xs">Birikimler</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('transfers')}
+              className={`flex flex-col items-center justify-center gap-1 ${
+                activeTab === 'transfers' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <ArrowLeftRight className="w-5 h-5" />
+              <span className="text-xs">Transfer</span>
             </button>
             <button
               onClick={() => setActiveTab('settings')}

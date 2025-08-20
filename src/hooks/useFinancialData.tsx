@@ -45,6 +45,19 @@ export interface Settings {
   debtPercentage: number;
   savingsPercentage: number;
   debtStrategy: 'snowball' | 'avalanche';
+  balance?: number;
+  debtFund?: number;
+  savingsFund?: number;
+}
+
+export interface Transfer {
+  id: string;
+  fromFund: 'balance' | 'debt_fund' | 'savings_fund';
+  toFund: 'balance' | 'debt_fund' | 'savings_fund';
+  amount: number;
+  description?: string;
+  transferType: 'manual' | 'automatic';
+  createdAt: string;
 }
 
 export const useFinancialData = () => {
@@ -54,10 +67,14 @@ export const useFinancialData = () => {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [settings, setSettings] = useState<Settings>({ 
     debtPercentage: 30, 
     savingsPercentage: 20, 
-    debtStrategy: 'snowball' 
+    debtStrategy: 'snowball',
+    balance: 0,
+    debtFund: 0,
+    savingsFund: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -70,7 +87,15 @@ export const useFinancialData = () => {
       setIncomes([]);
       setDebts([]);
       setSavingGoals([]);
-      setSettings({ debtPercentage: 30, savingsPercentage: 20, debtStrategy: 'snowball' });
+      setTransfers([]);
+      setSettings({ 
+        debtPercentage: 30, 
+        savingsPercentage: 20, 
+        debtStrategy: 'snowball',
+        balance: 0,
+        debtFund: 0,
+        savingsFund: 0
+      });
     }
   }, [user]);
 
@@ -83,7 +108,8 @@ export const useFinancialData = () => {
         loadIncomes(),
         loadDebts(),
         loadSavingGoals(),
-        loadSettings()
+        loadSettings(),
+        loadTransfers()
       ]);
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -221,7 +247,7 @@ export const useFinancialData = () => {
       .from('user_settings')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     
     if (error && error.code !== 'PGRST116') {
       console.error('Error loading settings:', error);
@@ -232,8 +258,38 @@ export const useFinancialData = () => {
       setSettings({
         debtPercentage: data.debt_percentage || 30,
         savingsPercentage: data.savings_percentage || 20,
-        debtStrategy: data.debt_strategy as Settings['debtStrategy'] || 'snowball'
+        debtStrategy: data.debt_strategy as Settings['debtStrategy'] || 'snowball',
+        balance: data.balance || 0,
+        debtFund: data.debt_fund || 0,
+        savingsFund: data.savings_fund || 0
       });
+    }
+  };
+
+  const loadTransfers = async () => {
+    if (!user) return;
+    
+    const { data, error } = await (supabase as any)
+      .from('transfers')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading transfers:', error);
+      return;
+    }
+
+    if (data) {
+      setTransfers(data.map((transfer: any) => ({
+        id: transfer.id,
+        fromFund: transfer.from_fund as 'balance' | 'debt_fund' | 'savings_fund',
+        toFund: transfer.to_fund as 'balance' | 'debt_fund' | 'savings_fund',
+        amount: parseFloat(transfer.amount?.toString() || '0'),
+        description: transfer.description || '',
+        transferType: transfer.transfer_type as 'manual' | 'automatic',
+        createdAt: transfer.created_at
+      })));
     }
   };
 
@@ -276,7 +332,14 @@ export const useFinancialData = () => {
     };
     
     setIncomes(prev => [newIncome, ...prev]);
-    toast({ title: "Başarılı", description: "Gelir eklendi" });
+    
+    // Otomatik dağıtım
+    await distributeIncome(newIncome.amount);
+    
+    toast({ 
+      title: "Başarılı", 
+      description: "Gelir eklendi ve fonlara dağıtıldı." 
+    });
   };
 
   const deleteIncome = async (id: string) => {
@@ -591,16 +654,19 @@ export const useFinancialData = () => {
   };
 
   // Settings operations
-  const updateSettings = async (newSettings: Settings) => {
+  const updateSettings = async (newSettings: Partial<Settings>) => {
     if (!user) return;
     
     // First try to update existing record
     const { data: updateData, error: updateError } = await (supabase as any)
       .from('user_settings')
       .update({
-        debt_percentage: newSettings.debtPercentage,
-        savings_percentage: newSettings.savingsPercentage,
-        debt_strategy: newSettings.debtStrategy
+        debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
+        savings_percentage: newSettings.savingsPercentage ?? settings.savingsPercentage,
+        debt_strategy: newSettings.debtStrategy ?? settings.debtStrategy,
+        balance: newSettings.balance ?? settings.balance,
+        debt_fund: newSettings.debtFund ?? settings.debtFund,
+        savings_fund: newSettings.savingsFund ?? settings.savingsFund
       })
       .eq('user_id', user.id)
       .select()
@@ -612,9 +678,12 @@ export const useFinancialData = () => {
         .from('user_settings')
         .insert({
           user_id: user.id,
-          debt_percentage: newSettings.debtPercentage,
-          savings_percentage: newSettings.savingsPercentage,
-          debt_strategy: newSettings.debtStrategy
+          debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
+          savings_percentage: newSettings.savingsPercentage ?? settings.savingsPercentage,
+          debt_strategy: newSettings.debtStrategy ?? settings.debtStrategy,
+          balance: newSettings.balance ?? settings.balance,
+          debt_fund: newSettings.debtFund ?? settings.debtFund,
+          savings_fund: newSettings.savingsFund ?? settings.savingsFund
         })
         .select()
         .single();
@@ -638,14 +707,108 @@ export const useFinancialData = () => {
       return;
     }
     
-    setSettings(newSettings);
+    setSettings(prev => ({ ...prev, ...newSettings }));
     toast({ title: "Başarılı", description: "Ayarlar güncellendi" });
+  };
+
+  // Gelir dağıtım fonksiyonu
+  const distributeIncome = async (amount: number) => {
+    if (!user) return;
+
+    try {
+      const debtAmount = (amount * settings.debtPercentage) / 100;
+      const savingsAmount = (amount * settings.savingsPercentage) / 100;
+      const remainingAmount = amount - debtAmount - savingsAmount;
+
+      // Balance'ı güncelle
+      await updateSettings({
+        balance: (settings.balance || 0) + remainingAmount,
+        debtFund: (settings.debtFund || 0) + debtAmount,
+        savingsFund: (settings.savingsFund || 0) + savingsAmount
+      });
+
+      // Transfer kayıtlarını oluştur
+      if (debtAmount > 0) {
+        await (supabase as any).from('transfers').insert({
+          user_id: user.id,
+          from_fund: 'balance',
+          to_fund: 'debt_fund',
+          amount: debtAmount,
+          description: 'Otomatik borç fonu dağıtımı',
+          transfer_type: 'automatic'
+        });
+      }
+
+      if (savingsAmount > 0) {
+        await (supabase as any).from('transfers').insert({
+          user_id: user.id,
+          from_fund: 'balance',
+          to_fund: 'savings_fund',
+          amount: savingsAmount,
+          description: 'Otomatik birikim fonu dağıtımı',
+          transfer_type: 'automatic'
+        });
+      }
+
+      await loadTransfers(); // Transfer listesini yenile
+    } catch (error) {
+      console.error('Error distributing income:', error);
+    }
+  };
+
+  // Manuel transfer fonksiyonu
+  const transferFunds = async (
+    fromFund: 'balance' | 'debt_fund' | 'savings_fund',
+    toFund: 'balance' | 'debt_fund' | 'savings_fund',
+    amount: number,
+    description?: string
+  ) => {
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
+
+    try {
+      const { data, error } = await (supabase as any).rpc('transfer_funds', {
+        p_from_fund: fromFund,
+        p_to_fund: toFund,
+        p_amount: amount,
+        p_description: description,
+        p_transfer_type: 'manual'
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string; message?: string };
+      
+      if (result.success) {
+        await Promise.all([loadSettings(), loadTransfers()]);
+        toast({
+          title: "Transfer Tamamlandı",
+          description: result.message || "Para transferi başarıyla gerçekleştirildi.",
+        });
+        return { success: true };
+      } else {
+        toast({
+          title: "Transfer Hatası",
+          description: result.error || "Transfer işlemi başarısız oldu.",
+          variant: "destructive"
+        });
+        return { success: false, error: result.error };
+      }
+    } catch (error: any) {
+      console.error('Error transferring funds:', error);
+      toast({
+        title: "Hata",
+        description: "Transfer işlemi sırasında bir hata oluştu.",
+        variant: "destructive"
+      });
+      return { success: false, error: error.message };
+    }
   };
 
   return {
     incomes,
     debts,
     savingGoals,
+    transfers,
     settings,
     loading,
     addIncome,
@@ -658,6 +821,7 @@ export const useFinancialData = () => {
     updateSavingGoal,
     deleteSavingGoal,
     updateSettings,
+    transferFunds,
     refreshData: loadAllData
   };
 };

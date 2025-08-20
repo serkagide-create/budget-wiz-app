@@ -283,30 +283,72 @@ export type Database = {
         }
         Relationships: []
       }
+      transfers: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          from_fund: string
+          id: string
+          to_fund: string
+          transfer_type: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          from_fund: string
+          id?: string
+          to_fund: string
+          transfer_type?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          from_fund?: string
+          id?: string
+          to_fund?: string
+          transfer_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_settings: {
         Row: {
+          balance: number | null
           created_at: string
+          debt_fund: number | null
           debt_percentage: number | null
           debt_strategy: string | null
           id: string
+          savings_fund: number | null
           savings_percentage: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          balance?: number | null
           created_at?: string
+          debt_fund?: number | null
           debt_percentage?: number | null
           debt_strategy?: string | null
           id?: string
+          savings_fund?: number | null
           savings_percentage?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          balance?: number | null
           created_at?: string
+          debt_fund?: number | null
           debt_percentage?: number | null
           debt_strategy?: string | null
           id?: string
+          savings_fund?: number | null
           savings_percentage?: number | null
           updated_at?: string
           user_id?: string
@@ -318,7 +360,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      transfer_funds: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_from_fund: string
+          p_to_fund: string
+          p_transfer_type?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
