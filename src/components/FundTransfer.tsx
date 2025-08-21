@@ -69,46 +69,46 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 max-w-7xl mx-auto">
       {/* Fon Bakiyeleri */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <Wallet className="h-6 w-6 text-primary" />
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="min-w-0">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+                <Wallet className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Harcanabilir Tutar</p>
-                <p className="text-2xl font-bold">{formatCurrency(settings.balance || 0)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-destructive/10 rounded-lg">
-                <CreditCard className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Borç Fonu</p>
-                <p className="text-2xl font-bold">{formatCurrency(settings.debtFund || 0)}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground truncate">Harcanabilir Tutar</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(settings.balance || 0)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="flex items-center p-6">
-            <div className="flex items-center space-x-4">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <PiggyBank className="h-6 w-6 text-green-600" />
+        <Card className="min-w-0">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-destructive/10 rounded-lg flex-shrink-0">
+                <CreditCard className="h-5 w-5 text-destructive" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Birikim Fonu</p>
-                <p className="text-2xl font-bold">{formatCurrency(settings.savingsFund || 0)}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground truncate">Borç Fonu</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(settings.debtFund || 0)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="min-w-0">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-500/10 rounded-lg flex-shrink-0">
+                <PiggyBank className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground truncate">Birikim Fonu</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(settings.savingsFund || 0)}</p>
               </div>
             </div>
           </CardContent>
@@ -124,30 +124,30 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
             <div className="space-y-2">
               <Label>Nereden</Label>
               <Select value={fromFund} onValueChange={(value: 'balance' | 'debt_fund' | 'savings_fund') => setFromFund(value)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="balance">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4" />
-                      Harcanabilir Tutar ({formatCurrency(settings.balance || 0)})
+                    <div className="flex items-center gap-2 max-w-full">
+                      <Wallet className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Harcanabilir ({formatCurrency(settings.balance || 0)})</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="debt_fund">
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Borç Fonu ({formatCurrency(settings.debtFund || 0)})
+                    <div className="flex items-center gap-2 max-w-full">
+                      <CreditCard className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Borç Fonu ({formatCurrency(settings.debtFund || 0)})</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="savings_fund">
-                    <div className="flex items-center gap-2">
-                      <PiggyBank className="h-4 w-4" />
-                      Birikim Fonu ({formatCurrency(settings.savingsFund || 0)})
+                    <div className="flex items-center gap-2 max-w-full">
+                      <PiggyBank className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Birikim ({formatCurrency(settings.savingsFund || 0)})</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -157,26 +157,26 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
             <div className="space-y-2">
               <Label>Nereye</Label>
               <Select value={toFund} onValueChange={(value: 'balance' | 'debt_fund' | 'savings_fund') => setToFund(value)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="balance" disabled={fromFund === 'balance'}>
                     <div className="flex items-center gap-2">
-                      <Wallet className="h-4 w-4" />
-                      Harcanabilir Tutar
+                      <Wallet className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Harcanabilir Tutar</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="debt_fund" disabled={fromFund === 'debt_fund'}>
                     <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" />
-                      Borç Fonu
+                      <CreditCard className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Borç Fonu</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="savings_fund" disabled={fromFund === 'savings_fund'}>
                     <div className="flex items-center gap-2">
-                      <PiggyBank className="h-4 w-4" />
-                      Birikim Fonu
+                      <PiggyBank className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Birikim Fonu</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -202,19 +202,20 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
               placeholder="Transfer açıklaması"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+              rows={2}
+              className="resize-none"
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between p-3 bg-muted rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               {getFundIcon(fromFund)}
-              <span className="font-medium">{getFundName(fromFund)}</span>
+              <span className="font-medium text-sm truncate">{getFundName(fromFund)}</span>
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            <div className="flex items-center gap-2">
+            <ArrowRight className="h-4 w-4 text-muted-foreground mx-2 flex-shrink-0" />
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
               {getFundIcon(toFund)}
-              <span className="font-medium">{getFundName(toFund)}</span>
+              <span className="font-medium text-sm truncate">{getFundName(toFund)}</span>
             </div>
           </div>
 
@@ -235,24 +236,24 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
             <CardTitle>Transfer Geçmişi</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 max-h-96 overflow-y-auto">
               {transfers.slice(0, 10).map((transfer) => (
-                <div key={transfer.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
+                <div key={transfer.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {getFundIcon(transfer.fromFund)}
-                      <span className="text-sm font-medium">{getFundName(transfer.fromFund)}</span>
+                      <span className="text-xs font-medium truncate max-w-20">{getFundName(transfer.fromFund).split(' ')[0]}</span>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex items-center gap-2">
+                    <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       {getFundIcon(transfer.toFund)}
-                      <span className="text-sm font-medium">{getFundName(transfer.toFund)}</span>
+                      <span className="text-xs font-medium truncate max-w-20">{getFundName(transfer.toFund).split(' ')[0]}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{formatCurrency(transfer.amount)}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={transfer.transferType === 'automatic' ? 'secondary' : 'default'}>
+                  <div className="text-left sm:text-right flex-shrink-0">
+                    <p className="font-semibold text-sm">{formatCurrency(transfer.amount)}</p>
+                    <div className="flex flex-wrap items-center gap-1 sm:justify-end">
+                      <Badge variant={transfer.transferType === 'automatic' ? 'secondary' : 'default'} className="text-xs">
                         {transfer.transferType === 'automatic' ? 'Otomatik' : 'Manuel'}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
@@ -260,7 +261,7 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
                       </span>
                     </div>
                     {transfer.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{transfer.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate max-w-32">{transfer.description}</p>
                     )}
                   </div>
                 </div>

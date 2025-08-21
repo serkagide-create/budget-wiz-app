@@ -345,6 +345,7 @@ export const useFinancialData = () => {
   const deleteIncome = async (id: string) => {
     if (!user) return;
     
+    // Önce geliri sil
     const { error } = await (supabase as any)
       .from('incomes')
       .delete()
@@ -361,8 +362,42 @@ export const useFinancialData = () => {
       return;
     }
     
+    // Bu gelir ile oluşturulmuş otomatik transferleri de sil
+    // (Gelir ekleme tarihi ile transfer oluşturma tarihi karşılaştırılarak)
+    const deletedIncome = incomes.find(income => income.id === id);
+    if (deletedIncome) {
+      const incomeDate = new Date(deletedIncome.date);
+      const startOfDay = new Date(incomeDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(incomeDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // O günkü otomatik transferleri sil
+      await (supabase as any)
+        .from('transfers')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('transfer_type', 'automatic')
+        .gte('created_at', startOfDay.toISOString())
+        .lte('created_at', endOfDay.toISOString());
+      
+      // Gelir dağıtımını geri al - fonlardan düş
+      const debtAmount = (deletedIncome.amount * settings.debtPercentage) / 100;
+      const savingsAmount = (deletedIncome.amount * settings.savingsPercentage) / 100;
+      const remainingAmount = deletedIncome.amount - debtAmount - savingsAmount;
+
+      await updateSettings({
+        balance: Math.max(0, (settings.balance || 0) - remainingAmount),
+        debtFund: Math.max(0, (settings.debtFund || 0) - debtAmount),
+        savingsFund: Math.max(0, (settings.savingsFund || 0) - savingsAmount)
+      });
+
+      // Transfer listesini yenile
+      await loadTransfers();
+    }
+    
     setIncomes(prev => prev.filter(income => income.id !== id));
-    toast({ title: "Başarılı", description: "Gelir silindi" });
+    toast({ title: "Başarılı", description: "Gelir ve ilişkili transferler silindi" });
   };
 
   // Debt operations
