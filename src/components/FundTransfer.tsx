@@ -48,17 +48,39 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
   const [description, setDescription] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
 
+  const getAvailableBalance = (fund: 'balance' | 'debt_fund' | 'savings_fund') => {
+    switch (fund) {
+      case 'balance':
+        return settings.balance || 0;
+      case 'debt_fund':
+        return settings.debtFund || 0;
+      case 'savings_fund':
+        return settings.savingsFund || 0;
+      default:
+        return 0;
+    }
+  };
+
+  const availableAmount = getAvailableBalance(fromFund);
+  const transferAmount = parseFloat(amount) || 0;
+  const isValidAmount = transferAmount > 0 && transferAmount <= availableAmount;
+
   const handleTransfer = async () => {
-    if (!amount || parseFloat(amount) <= 0) return;
+    if (!isValidAmount) return;
     
     setIsTransferring(true);
     try {
-      await onTransfer(fromFund, toFund, parseFloat(amount), description || undefined);
+      await onTransfer(fromFund, toFund, transferAmount, description || undefined);
       setAmount('');
       setDescription('');
     } finally {
       setIsTransferring(false);
     }
+  };
+
+  const setQuickAmount = (percentage: number) => {
+    const quickAmount = (availableAmount * percentage / 100).toFixed(2);
+    setAmount(quickAmount);
   };
 
   const formatCurrency = (value: number) => {
@@ -186,14 +208,76 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
 
           <div className="space-y-2">
             <Label>Tutar (₺)</Label>
-            <Input
-              type="number"
-              placeholder="Transfer edilecek tutarı girin"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="1"
-              step="0.01"
-            />
+            <div className="space-y-3">
+              <Input
+                type="number"
+                placeholder="Transfer edilecek tutarı girin"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="0"
+                max={availableAmount}
+                step="0.01"
+                className={transferAmount > availableAmount ? "border-destructive" : ""}
+              />
+              
+              {/* Kullanılabilir Bakiye */}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Kullanılabilir Bakiye:</span>
+                <span className="font-medium">{formatCurrency(availableAmount)}</span>
+              </div>
+
+              {/* Yetersiz Bakiye Uyarısı */}
+              {transferAmount > availableAmount && transferAmount > 0 && (
+                <div className="text-sm text-destructive">
+                  Yetersiz bakiye! Maksimum {formatCurrency(availableAmount)} transfer edebilirsiniz.
+                </div>
+              )}
+
+              {/* Hızlı Transfer Butonları */}
+              {availableAmount > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Hızlı Transfer:</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickAmount(25)}
+                      className="text-xs"
+                    >
+                      %25
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickAmount(50)}
+                      className="text-xs"
+                    >
+                      %50
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickAmount(75)}
+                      className="text-xs"
+                    >
+                      %75
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuickAmount(100)}
+                      className="text-xs"
+                    >
+                      Tümü
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -221,10 +305,10 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
 
           <Button
             onClick={handleTransfer}
-            disabled={!amount || parseFloat(amount) <= 0 || fromFund === toFund || isTransferring}
+            disabled={!isValidAmount || fromFund === toFund || isTransferring}
             className="w-full"
           >
-            {isTransferring ? 'Transfer Yapılıyor...' : `${formatCurrency(parseFloat(amount) || 0)} Transfer Et`}
+            {isTransferring ? 'Transfer Yapılıyor...' : `${formatCurrency(transferAmount)} Transfer Et`}
           </Button>
         </CardContent>
       </Card>
