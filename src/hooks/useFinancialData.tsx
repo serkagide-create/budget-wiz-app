@@ -839,6 +839,58 @@ export const useFinancialData = () => {
     }
   };
 
+  const deleteTransfer = async (transferId: string) => {
+    if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
+
+    try {
+      // İlk önce transfer detaylarını al
+      const { data: transferData, error: fetchError } = await (supabase as any)
+        .from('transfers')
+        .select('*')
+        .eq('id', transferId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!transferData) {
+        return { success: false, error: 'Transfer bulunamadı' };
+      }
+
+      // Transfer işlemini geri al - fonları eski haline döndür
+      const { error: revertError } = await (supabase as any).rpc('revert_transfer', {
+        p_transfer_id: transferId
+      });
+
+      if (revertError) throw revertError;
+
+      // Transfer kaydını sil
+      const { error: deleteError } = await (supabase as any)
+        .from('transfers')
+        .delete()
+        .eq('id', transferId)
+        .eq('user_id', user.id);
+
+      if (deleteError) throw deleteError;
+
+      await Promise.all([loadSettings(), loadTransfers()]);
+      
+      toast({
+        title: "Transfer Silindi",
+        description: "Transfer başarıyla silindi ve fonlar eski haline döndürüldü.",
+      });
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error deleting transfer:', error);
+      toast({
+        title: "Hata",
+        description: "Transfer silinirken bir hata oluştu.",
+        variant: "destructive"
+      });
+      return { success: false, error: error.message };
+    }
+  };
+
   return {
     incomes,
     debts,
@@ -857,6 +909,7 @@ export const useFinancialData = () => {
     deleteSavingGoal,
     updateSettings,
     transferFunds,
+    deleteTransfer,
     refreshData: loadAllData
   };
 };

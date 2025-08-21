@@ -124,6 +124,7 @@ const BudgetApp = () => {
     deleteSavingGoal,
     updateSettings,
     transferFunds,
+    deleteTransfer,
     refreshData
   } = useFinancialData();
 
@@ -1029,10 +1030,11 @@ const BudgetApp = () => {
           {activeTab === 'debts' && renderDebts()}
           {activeTab === 'saving-goals' && renderSavingGoals()}
           {activeTab === 'transfers' && (
-            <FundTransfer
-              settings={settings}
-              transfers={transfers}
+            <FundTransfer 
+              settings={settings} 
+              transfers={transfers} 
               onTransfer={transferFunds}
+              onDeleteTransfer={deleteTransfer}
             />
           )}
           {activeTab === 'settings' && renderSettings()}

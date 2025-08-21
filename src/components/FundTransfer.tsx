@@ -13,6 +13,7 @@ interface FundTransferProps {
   settings: Settings;
   transfers: Transfer[];
   onTransfer: (fromFund: 'balance' | 'debt_fund' | 'savings_fund', toFund: 'balance' | 'debt_fund' | 'savings_fund', amount: number, description?: string) => Promise<{ success: boolean; error?: string }>;
+  onDeleteTransfer: (transferId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const getFundIcon = (fund: string) => {
@@ -41,7 +42,7 @@ const getFundName = (fund: string) => {
   }
 };
 
-const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTransfer }) => {
+const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTransfer, onDeleteTransfer }) => {
   const [fromFund, setFromFund] = useState<'balance' | 'debt_fund' | 'savings_fund'>('balance');
   const [toFund, setToFund] = useState<'balance' | 'debt_fund' | 'savings_fund'>('debt_fund');
   const [amount, setAmount] = useState('');
@@ -322,33 +323,43 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {transfers.slice(0, 10).map((transfer) => (
-                <div key={transfer.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {getFundIcon(transfer.fromFund)}
-                      <span className="text-xs font-medium truncate max-w-20">{getFundName(transfer.fromFund).split(' ')[0]}</span>
-                    </div>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      {getFundIcon(transfer.toFund)}
-                      <span className="text-xs font-medium truncate max-w-20">{getFundName(transfer.toFund).split(' ')[0]}</span>
-                    </div>
-                  </div>
-                  <div className="text-left sm:text-right flex-shrink-0">
-                    <p className="font-semibold text-sm">{formatCurrency(transfer.amount)}</p>
-                    <div className="flex flex-wrap items-center gap-1 sm:justify-end">
-                      <Badge variant={transfer.transferType === 'automatic' ? 'secondary' : 'default'} className="text-xs">
-                        {transfer.transferType === 'automatic' ? 'Otomatik' : 'Manuel'}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(transfer.createdAt).toLocaleDateString('tr-TR')}
-                      </span>
-                    </div>
-                    {transfer.description && (
-                      <p className="text-xs text-muted-foreground mt-1 truncate max-w-32">{transfer.description}</p>
-                    )}
-                  </div>
-                </div>
+                 <div key={transfer.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
+                   <div className="flex items-center gap-2 min-w-0 flex-1">
+                     <div className="flex items-center gap-1 flex-shrink-0">
+                       {getFundIcon(transfer.fromFund)}
+                       <span className="text-xs font-medium truncate max-w-20">{getFundName(transfer.fromFund).split(' ')[0]}</span>
+                     </div>
+                     <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                     <div className="flex items-center gap-1 flex-shrink-0">
+                       {getFundIcon(transfer.toFund)}
+                       <span className="text-xs font-medium truncate max-w-20">{getFundName(transfer.toFund).split(' ')[0]}</span>
+                     </div>
+                   </div>
+                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                     <div className="text-left sm:text-right flex-shrink-0">
+                       <p className="font-semibold text-sm">{formatCurrency(transfer.amount)}</p>
+                       <div className="flex flex-wrap items-center gap-1 sm:justify-end">
+                         <Badge variant={transfer.transferType === 'automatic' ? 'secondary' : 'default'} className="text-xs">
+                           {transfer.transferType === 'automatic' ? 'Otomatik' : 'Manuel'}
+                         </Badge>
+                         <span className="text-xs text-muted-foreground">
+                           {new Date(transfer.createdAt).toLocaleDateString('tr-TR')}
+                         </span>
+                       </div>
+                       {transfer.description && (
+                         <p className="text-xs text-muted-foreground mt-1 truncate max-w-32">{transfer.description}</p>
+                       )}
+                     </div>
+                     <Button
+                       size="sm"
+                       variant="destructive"
+                       onClick={() => onDeleteTransfer(transfer.id)}
+                       className="text-xs px-2 py-1 h-6"
+                     >
+                       Sil
+                     </Button>
+                   </div>
+                 </div>
               ))}
             </div>
           </CardContent>
