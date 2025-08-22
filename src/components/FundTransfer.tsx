@@ -145,6 +145,9 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
             <ArrowLeftRight className="h-5 w-5" />
             Fon Transferi
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Kullanmadığınız fonları diğer fonlara aktarabilirsiniz. Örneğin: Borçlarınızı ödedikten sonra borç fonunda kalan parayı birikime aktarın.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
