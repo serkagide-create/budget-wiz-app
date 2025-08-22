@@ -569,7 +569,7 @@ const BudgetApp = () => {
               <p className="text-xs text-primary/80">Kalan Harcanabilir</p>
               <p className="text-sm font-bold text-primary">%{100 - settings.debtPercentage - settings.savingsPercentage}</p>
               <p className="text-xs text-primary/60">
-                {formatCurrency(totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100)}
+                {formatCurrency(settings.balance || 0)}
               </p>
             </CardContent>
           </Card>
