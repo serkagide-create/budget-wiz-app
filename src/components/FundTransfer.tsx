@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Wallet, CreditCard, PiggyBank, ArrowLeftRight } from "lucide-react";
+import { ArrowRight, Wallet, CreditCard, PiggyBank, ArrowLeftRight, Trash2 } from "lucide-react";
 import { Settings, Transfer } from "@/hooks/useFinancialData";
 
 interface FundTransferProps {
@@ -350,14 +350,16 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
                          <p className="text-xs text-muted-foreground mt-1 truncate max-w-32">{transfer.description}</p>
                        )}
                      </div>
-                     <Button
-                       size="sm"
-                       variant="destructive"
-                       onClick={() => onDeleteTransfer(transfer.id)}
-                       className="text-xs px-2 py-1 h-6"
-                     >
-                       Sil
-                     </Button>
+                     {transfer.transferType === 'manual' && (
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={() => onDeleteTransfer(transfer.id)}
+                         className="text-xs px-2 py-1 h-7 hover:bg-destructive hover:text-destructive-foreground"
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </Button>
+                     )}
                    </div>
                  </div>
               ))}
