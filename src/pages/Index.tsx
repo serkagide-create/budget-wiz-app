@@ -531,15 +531,50 @@ const BudgetApp = () => {
 
   const renderIncomes = () => (
     <div className="space-y-4">
-      {/* Available income fund info */}
-      <Card className="bg-gradient-income border-0">
-        <CardContent className="p-4 text-center">
-          <p className="text-sm text-income-foreground/80">Toplam Gelir</p>
-          <p className="text-2xl font-bold text-income-foreground">
-            {formatCurrency(totalIncome)}
-          </p>
-        </CardContent>
-      </Card>
+      {/* Income distribution cards */}
+      <div className="grid grid-cols-1 gap-3">
+        <Card className="bg-gradient-income border-0">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-income-foreground/80">Toplam Gelir</p>
+            <p className="text-2xl font-bold text-income-foreground">
+              {formatCurrency(totalIncome)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Fund Distribution */}
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="bg-gradient-expense border-0">
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-expense-foreground/80">Borç Fonu</p>
+              <p className="text-sm font-bold text-expense-foreground">%{settings.debtPercentage}</p>
+              <p className="text-xs text-expense-foreground/60">
+                {formatCurrency((totalIncome * settings.debtPercentage) / 100)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-savings border-0">
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-savings-foreground/80">Birikim Fonu</p>
+              <p className="text-sm font-bold text-savings-foreground">%{settings.savingsPercentage}</p>
+              <p className="text-xs text-savings-foreground/60">
+                {formatCurrency((totalIncome * settings.savingsPercentage) / 100)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border border-primary/20">
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-primary/80">Harcanabilir</p>
+              <p className="text-sm font-bold text-primary">%{100 - settings.debtPercentage - settings.savingsPercentage}</p>
+              <p className="text-xs text-primary/60">
+                {formatCurrency(totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Add Income Form */}
       <Card>
