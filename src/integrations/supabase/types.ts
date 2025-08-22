@@ -360,6 +360,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      revert_transfer: {
+        Args: { p_transfer_id: string }
+        Returns: undefined
+      }
       transfer_funds: {
         Args: {
           p_amount: number
