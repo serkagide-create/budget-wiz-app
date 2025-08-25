@@ -546,20 +546,20 @@ const BudgetApp = () => {
         <div className="grid grid-cols-3 gap-2">
           <Card className="bg-gradient-expense border-0">
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-expense-foreground/80">Borç Fonu</p>
+              <p className="text-xs text-expense-foreground/80">Kalan Borç Fonu</p>
               <p className="text-sm font-bold text-expense-foreground">%{settings.debtPercentage}</p>
               <p className="text-xs text-expense-foreground/60">
-                {formatCurrency((totalIncome * settings.debtPercentage) / 100)}
+                {formatCurrency(availableDebtFund)}
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-savings border-0">
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-savings-foreground/80">Birikim Fonu</p>
+              <p className="text-xs text-savings-foreground/80">Kalan Tasarruf Fonu</p>
               <p className="text-sm font-bold text-savings-foreground">%{settings.savingsPercentage}</p>
               <p className="text-xs text-savings-foreground/60">
-                {formatCurrency((totalIncome * settings.savingsPercentage) / 100)}
+                {formatCurrency(availableSavingsFund)}
               </p>
             </CardContent>
           </Card>
