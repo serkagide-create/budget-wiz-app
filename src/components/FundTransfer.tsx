@@ -12,6 +12,8 @@ import { Settings, Transfer } from "@/hooks/useFinancialData";
 interface FundTransferProps {
   settings: Settings;
   transfers: Transfer[];
+  availableDebtFund: number;
+  availableSavingsFund: number;
   onTransfer: (fromFund: 'balance' | 'debt_fund' | 'savings_fund', toFund: 'balance' | 'debt_fund' | 'savings_fund', amount: number, description?: string) => Promise<{ success: boolean; error?: string }>;
   onDeleteTransfer: (transferId: string) => Promise<{ success: boolean; error?: string }>;
 }
@@ -34,15 +36,15 @@ const getFundName = (fund: string) => {
     case 'balance':
       return 'Harcanabilir Tutar';
     case 'debt_fund':
-      return 'Borç Fonu';
+      return 'Kalan Borç Fonu';
     case 'savings_fund':
-      return 'Birikim Fonu';
+      return 'Kalan Birikim Fonu';
     default:
       return fund;
   }
 };
 
-const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTransfer, onDeleteTransfer }) => {
+const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, availableDebtFund, availableSavingsFund, onTransfer, onDeleteTransfer }) => {
   const [fromFund, setFromFund] = useState<'balance' | 'debt_fund' | 'savings_fund'>('balance');
   const [toFund, setToFund] = useState<'balance' | 'debt_fund' | 'savings_fund'>('debt_fund');
   const [amount, setAmount] = useState('');
@@ -54,9 +56,9 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
       case 'balance':
         return settings.balance || 0;
       case 'debt_fund':
-        return settings.debtFund || 0;
+        return availableDebtFund;
       case 'savings_fund':
-        return settings.savingsFund || 0;
+        return availableSavingsFund;
       default:
         return 0;
     }
@@ -116,8 +118,8 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
                 <CreditCard className="h-5 w-5 text-destructive" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-muted-foreground truncate">Borç Fonu</p>
-                <p className="text-lg font-bold truncate">{formatCurrency(settings.debtFund || 0)}</p>
+                <p className="text-xs font-medium text-muted-foreground truncate">Kalan Borç Fonu</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(availableDebtFund)}</p>
               </div>
             </div>
           </CardContent>
@@ -130,8 +132,8 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
                 <PiggyBank className="h-5 w-5 text-green-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-muted-foreground truncate">Birikim Fonu</p>
-                <p className="text-lg font-bold truncate">{formatCurrency(settings.savingsFund || 0)}</p>
+                <p className="text-xs font-medium text-muted-foreground truncate">Kalan Birikim Fonu</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(availableSavingsFund)}</p>
               </div>
             </div>
           </CardContent>
@@ -167,13 +169,13 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
                   <SelectItem value="debt_fund">
                     <div className="flex items-center gap-2 max-w-full">
                       <CreditCard className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Borç Fonu ({formatCurrency(settings.debtFund || 0)})</span>
+                      <span className="truncate">Kalan Borç Fonu ({formatCurrency(availableDebtFund)})</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="savings_fund">
                     <div className="flex items-center gap-2 max-w-full">
                       <PiggyBank className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Birikim ({formatCurrency(settings.savingsFund || 0)})</span>
+                      <span className="truncate">Kalan Birikim Fonu ({formatCurrency(availableSavingsFund)})</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -196,13 +198,13 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, onTran
                   <SelectItem value="debt_fund" disabled={fromFund === 'debt_fund'}>
                     <div className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Borç Fonu</span>
+                      <span className="truncate">Kalan Borç Fonu</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="savings_fund" disabled={fromFund === 'savings_fund'}>
                     <div className="flex items-center gap-2">
                       <PiggyBank className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Birikim Fonu</span>
+                      <span className="truncate">Kalan Birikim Fonu</span>
                     </div>
                   </SelectItem>
                 </SelectContent>

@@ -1067,7 +1067,9 @@ const BudgetApp = () => {
           {activeTab === 'transfers' && (
             <FundTransfer 
               settings={{...settings, balance: totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100}} 
-              transfers={transfers} 
+              transfers={transfers}
+              availableDebtFund={availableDebtFund}
+              availableSavingsFund={availableSavingsFund}
               onTransfer={transferFunds}
               onDeleteTransfer={deleteTransfer}
             />
