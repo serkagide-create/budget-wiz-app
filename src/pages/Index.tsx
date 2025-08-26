@@ -931,7 +931,7 @@ const BudgetApp = () => {
             <Label>Borç Ödeme Oranı: %{settings.debtPercentage}</Label>
             <Slider
               value={[settings.debtPercentage]}
-              onValueChange={([value]) => updateSettings({ ...settings, debtPercentage: value })}
+              onValueChange={([value]) => updateSettings({ debtPercentage: value })}
               max={100}
               step={5}
               className="w-full"
@@ -945,7 +945,7 @@ const BudgetApp = () => {
             <Label>Birikim Oranı: %{settings.savingsPercentage}</Label>
             <Slider
               value={[settings.savingsPercentage]}
-              onValueChange={([value]) => updateSettings({ ...settings, savingsPercentage: value })}
+              onValueChange={([value]) => updateSettings({ savingsPercentage: value })}
               max={100}
               step={5}
               className="w-full"
@@ -959,7 +959,7 @@ const BudgetApp = () => {
             <Label>Borç Ödeme Stratejisi</Label>
             <Select
               value={settings.debtStrategy}
-              onValueChange={(value: 'snowball' | 'avalanche') => updateSettings({ ...settings, debtStrategy: value })}
+              onValueChange={(value: 'snowball' | 'avalanche') => updateSettings({ debtStrategy: value })}
             >
               <SelectTrigger>
                 <SelectValue />
