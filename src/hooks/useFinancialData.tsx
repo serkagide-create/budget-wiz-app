@@ -260,8 +260,8 @@ export const useFinancialData = () => {
     
     if (data) {
       const loadedSettings = {
-        debtPercentage: data.debt_percentage || 30,
-        savingsPercentage: data.savings_percentage || 20,
+        debtPercentage: data.debt_percentage !== null ? data.debt_percentage : 30,
+        savingsPercentage: data.savings_percentage !== null ? data.savings_percentage : 20,
         debtStrategy: data.debt_strategy as Settings['debtStrategy'] || 'snowball',
         balance: data.balance || 0,
         debtFund: data.debt_fund || 0,
