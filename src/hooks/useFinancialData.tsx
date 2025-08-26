@@ -711,13 +711,15 @@ export const useFinancialData = () => {
     });
     
     const updateData = {
-      debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
-      savings_percentage: newSettings.savingsPercentage ?? settings.savingsPercentage,
+      debt_percentage: newSettings.debtPercentage !== undefined ? newSettings.debtPercentage : settings.debtPercentage,
+      savings_percentage: newSettings.savingsPercentage !== undefined ? newSettings.savingsPercentage : settings.savingsPercentage,
       debt_strategy: newSettings.debtStrategy ?? settings.debtStrategy,
-      balance: newSettings.balance ?? settings.balance,
-      debt_fund: newSettings.debtFund ?? settings.debtFund,
-      savings_fund: newSettings.savingsFund ?? settings.savingsFund
+      balance: newSettings.balance !== undefined ? newSettings.balance : settings.balance,
+      debt_fund: newSettings.debtFund !== undefined ? newSettings.debtFund : settings.debtFund,
+      savings_fund: newSettings.savingsFund !== undefined ? newSettings.savingsFund : settings.savingsFund
     };
+    
+    console.log('🔥 Final updateData being sent to database:', updateData);
     
     console.log('preparing to update with data:', updateData);
     
