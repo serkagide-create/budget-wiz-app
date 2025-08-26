@@ -243,11 +243,15 @@ export const useFinancialData = () => {
   const loadSettings = async () => {
     if (!user) return;
     
+    console.log('Loading settings for user:', user.id);
+    
     const { data, error } = await (supabase as any)
       .from('user_settings')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
+    
+    console.log('Settings loaded from DB:', data, 'error:', error);
     
     if (error && error.code !== 'PGRST116') {
       console.error('Error loading settings:', error);
@@ -255,14 +259,18 @@ export const useFinancialData = () => {
     }
     
     if (data) {
-      setSettings({
+      const loadedSettings = {
         debtPercentage: data.debt_percentage || 30,
         savingsPercentage: data.savings_percentage || 20,
         debtStrategy: data.debt_strategy as Settings['debtStrategy'] || 'snowball',
         balance: data.balance || 0,
         debtFund: data.debt_fund || 0,
         savingsFund: data.savings_fund || 0
-      });
+      };
+      console.log('Setting loaded settings:', loadedSettings);
+      setSettings(loadedSettings);
+    } else {
+      console.log('No settings found in DB, using defaults');
     }
   };
 
@@ -692,39 +700,44 @@ export const useFinancialData = () => {
   const updateSettings = async (newSettings: Partial<Settings>) => {
     if (!user) return;
     
-    // First try to update existing record
-    const { data: updateData, error: updateError } = await (supabase as any)
-      .from('user_settings')
-      .update({
-        debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
-        savings_percentage: newSettings.savingsPercentage ?? settings.savingsPercentage,
-        debt_strategy: newSettings.debtStrategy ?? settings.debtStrategy,
-        balance: newSettings.balance ?? settings.balance,
-        debt_fund: newSettings.debtFund ?? settings.debtFund,
-        savings_fund: newSettings.savingsFund ?? settings.savingsFund
-      })
-      .eq('user_id', user.id)
-      .select()
-      .single();
+    console.log('updateSettings called with:', newSettings);
+    console.log('current settings:', settings);
     
-    // If no record exists, insert a new one
-    if (updateError && updateError.code === 'PGRST116') {
-      const { data, error } = await (supabase as any)
+    const updateData = {
+      debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
+      savings_percentage: newSettings.savingsPercentage ?? settings.savingsPercentage,
+      debt_strategy: newSettings.debtStrategy ?? settings.debtStrategy,
+      balance: newSettings.balance ?? settings.balance,
+      debt_fund: newSettings.debtFund ?? settings.debtFund,
+      savings_fund: newSettings.savingsFund ?? settings.savingsFund
+    };
+    
+    console.log('preparing to update with data:', updateData);
+    
+    // Try to update existing record without .single() first
+    const { data: updateResult, error: updateError } = await (supabase as any)
+      .from('user_settings')
+      .update(updateData)
+      .eq('user_id', user.id)
+      .select();
+    
+    console.log('update result:', updateResult, 'error:', updateError);
+    
+    // If no rows were updated, insert a new record
+    if (!updateError && (!updateResult || updateResult.length === 0)) {
+      console.log('No existing record found, inserting new one');
+      const { data: insertResult, error: insertError } = await (supabase as any)
         .from('user_settings')
         .insert({
           user_id: user.id,
-          debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
-          savings_percentage: newSettings.savingsPercentage ?? settings.savingsPercentage,
-          debt_strategy: newSettings.debtStrategy ?? settings.debtStrategy,
-          balance: newSettings.balance ?? settings.balance,
-          debt_fund: newSettings.debtFund ?? settings.debtFund,
-          savings_fund: newSettings.savingsFund ?? settings.savingsFund
+          ...updateData
         })
-        .select()
-        .single();
+        .select();
       
-      if (error) {
-        console.error('Error inserting settings:', error);
+      console.log('insert result:', insertResult, 'error:', insertError);
+      
+      if (insertError) {
+        console.error('Error inserting settings:', insertError);
         toast({
           title: "Hata",
           description: "Ayarlar kaydedilirken bir hata oluştu.",
@@ -742,7 +755,13 @@ export const useFinancialData = () => {
       return;
     }
     
-    setSettings(prev => ({ ...prev, ...newSettings }));
+    console.log('Setting local state with:', newSettings);
+    setSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      console.log('Local state updated to:', updated);
+      return updated;
+    });
+    
     toast({ title: "Başarılı", description: "Ayarlar güncellendi" });
   };
 
