@@ -700,8 +700,15 @@ export const useFinancialData = () => {
   const updateSettings = async (newSettings: Partial<Settings>) => {
     if (!user) return;
     
-    console.log('updateSettings called with:', newSettings);
-    console.log('current settings:', settings);
+    console.log('🔥 updateSettings called with:', newSettings);
+    console.log('🔥 current settings:', settings);
+    
+    // Immediately update local state to prevent UI lag
+    setSettings(prev => {
+      const updated = { ...prev, ...newSettings };
+      console.log('🔥 Immediate local state update:', updated);
+      return updated;
+    });
     
     const updateData = {
       debt_percentage: newSettings.debtPercentage ?? settings.debtPercentage,
