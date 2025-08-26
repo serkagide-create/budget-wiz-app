@@ -487,18 +487,21 @@ export const useFinancialData = () => {
     const targetDebt = debts.find(d => d.id === debtId);
     let nextPaymentDate = undefined;
     
-    if (targetDebt?.monthlyRepeat || targetDebt?.installmentCount) {
-      const currentDate = new Date();
-      const nextMonth = new Date(currentDate);
+    if (targetDebt?.monthlyRepeat && targetDebt?.installmentCount) {
+      // Mevcut next_payment_date varsa onu kullan, yoksa due_date kullan
+      const baseDate = targetDebt.nextPaymentDate ? 
+        new Date(targetDebt.nextPaymentDate) : 
+        new Date(targetDebt.dueDate);
+      
+      // Bir sonraki ay aynı güne geç
+      const nextMonth = new Date(baseDate);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
       
-      // Eğer due_date varsa, aynı günü koruyarak bir sonraki aya geç
-      if (targetDebt.dueDate) {
-        const dueDate = new Date(targetDebt.dueDate);
-        nextMonth.setDate(dueDate.getDate());
-      }
-      
       nextPaymentDate = nextMonth.toISOString();
+      
+      console.log('🔄 Updating next payment date for debt:', debtId);
+      console.log('📅 Previous date:', targetDebt.nextPaymentDate || targetDebt.dueDate);
+      console.log('📅 New next date:', nextPaymentDate);
       
       // Borç tablosunda da güncelle
       await (supabase as any)
