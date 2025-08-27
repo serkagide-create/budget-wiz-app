@@ -30,6 +30,8 @@ export interface Debt {
   monthlyRepeat?: boolean;
   nextPaymentDate?: string;
   category?: 'credit-card' | 'loan' | 'mortgage' | 'car-loan' | 'bill' | 'installment' | 'other';
+  currency?: string;
+  originalAmount?: number; // Amount in original currency
 }
 
 export interface SavingGoal {

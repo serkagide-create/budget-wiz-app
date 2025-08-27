@@ -19,7 +19,8 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from "next-themes";
-import { cn, formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
+import { formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
+import { useCurrency, CURRENCIES } from '@/hooks/useCurrency';
 import { 
   PlusCircle, 
   Trash2, 
@@ -105,7 +106,8 @@ const BudgetApp = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Use the financial data hook
+  // Use currency hook
+  const { convertToTRY, formatAmount, exchangeRates, loading: currencyLoading } = useCurrency();
   const {
     incomes,
     debts,
@@ -153,7 +155,7 @@ const BudgetApp = () => {
 
   // Form States
   const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
-  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other' as Debt['category'] });
+  const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other' as Debt['category'], currency: 'TRY' });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
     targetAmount: '', 
@@ -245,9 +247,14 @@ const BudgetApp = () => {
     }
 
     try {
+      const originalAmount = parseFloat(debtForm.amount);
+      const totalAmountInTRY = convertToTRY(originalAmount, debtForm.currency);
+      
       await addDebt({
         description: debtForm.description,
-        totalAmount: parseFloat(debtForm.amount),
+        totalAmount: totalAmountInTRY,
+        originalAmount: originalAmount,
+        currency: debtForm.currency,
         dueDate: debtForm.dueDate,
         installmentCount: parseInt(debtForm.installmentCount),
         monthlyRepeat: debtForm.monthlyRepeat,
@@ -257,7 +264,7 @@ const BudgetApp = () => {
         category: debtForm.category
       });
       
-      setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other' });
+      setDebtForm({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other', currency: 'TRY' });
       toast({ title: "Başarılı", description: "Borç eklendi" });
     } catch (error) {
       toast({ title: "Hata", description: "Borç eklenirken hata oluştu", variant: "destructive" });
@@ -725,10 +732,25 @@ const BudgetApp = () => {
                   <SelectItem value="other">📋 Diğer</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <Select
+                  value={debtForm.currency}
+                  onValueChange={(value) => setDebtForm(prev => ({ ...prev, currency: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Para birimi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency.code} value={currency.code}>
+                        {currency.flag} {currency.code} - {currency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   type="number"
-                  placeholder="Tutar (₺)"
+                  placeholder={`Tutar (${debtForm.currency === 'TRY' ? '₺' : CURRENCIES.find(c => c.code === debtForm.currency)?.symbol || ''})`}
                   value={debtForm.amount}
                   onChange={(e) => setDebtForm(prev => ({ ...prev, amount: e.target.value }))}
                 />
@@ -739,6 +761,12 @@ const BudgetApp = () => {
                   onChange={(e) => setDebtForm(prev => ({ ...prev, installmentCount: e.target.value }))}
                 />
               </div>
+              {debtForm.currency !== 'TRY' && debtForm.amount && (
+                <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                  TL Karşılığı: <span className="font-medium">{formatCurrency(convertToTRY(parseFloat(debtForm.amount || '0'), debtForm.currency))}</span>
+                  {currencyLoading && <span className="ml-2 animate-pulse">📊 Kurlar güncelleniyor...</span>}
+                </div>
+              )}
               <div className="flex gap-2">
                 <Input
                   type="date"
