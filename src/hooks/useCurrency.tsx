@@ -28,7 +28,7 @@ export const CURRENCIES: Currency[] = [
   { code: 'AUD', name: 'Avustralya Doları', symbol: 'A$', flag: '🇦🇺' },
 ];
 
-export const useCurrency = () => {
+const useCurrency = () => {
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates>({
     USD: 34.50,
     EUR: 37.80,
@@ -104,3 +104,5 @@ export const useCurrency = () => {
     formatAmount,
   };
 };
+
+export { useCurrency };
