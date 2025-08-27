@@ -487,7 +487,7 @@ export const useFinancialData = () => {
     const targetDebt = debts.find(d => d.id === debtId);
     let nextPaymentDate = undefined;
     
-    if (targetDebt?.monthlyRepeat || targetDebt?.installmentCount) {
+    if (targetDebt?.monthlyRepeat || (targetDebt?.installmentCount && targetDebt.installmentCount > 0)) {
       // Mevcut next_payment_date varsa onu kullan, yoksa due_date kullan
       const baseDate = targetDebt.nextPaymentDate ? 
         new Date(targetDebt.nextPaymentDate) : 
