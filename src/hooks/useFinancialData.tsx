@@ -456,71 +456,98 @@ export const useFinancialData = () => {
   const addPayment = async (debtId: string, payment: Omit<Payment, 'id' | 'debt_id'>) => {
     if (!user) return;
     
-    const { data, error } = await (supabase as any)
-      .from('payments')
-      .insert({
-        debt_id: debtId,
-        amount: payment.amount,
-        date: payment.date
-      })
-      .select()
-      .single();
+    // Retry mekanizması ile ödeme ekleme
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    if (error) {
-      console.error('Error adding payment:', error);
-      toast({
-        title: "Hata",
-        description: "Ödeme eklenirken bir hata oluştu.",
-        variant: "destructive"
-      });
-      return;
+    while (retryCount < maxRetries) {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('payments')
+          .insert({
+            debt_id: debtId,
+            amount: payment.amount,
+            date: payment.date
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Başarılı olursa devam et
+        const newPayment: Payment = {
+          id: data.id,
+          amount: Number(data.amount),
+          date: data.date,
+          debt_id: data.debt_id
+        };
+        
+        // Borcu bul ve sonraki ödeme tarihini hesapla
+        const targetDebt = debts.find(d => d.id === debtId);
+        let nextPaymentDate = undefined;
+        
+        if (targetDebt?.monthlyRepeat || (targetDebt?.installmentCount && targetDebt.installmentCount > 0)) {
+          // Mevcut next_payment_date varsa onu kullan, yoksa due_date kullan
+          const baseDate = targetDebt.nextPaymentDate ? 
+            new Date(targetDebt.nextPaymentDate) : 
+            new Date(targetDebt.dueDate);
+          
+          // Bir sonraki ay aynı güne geç
+          const nextMonth = new Date(baseDate);
+          nextMonth.setMonth(nextMonth.getMonth() + 1);
+          
+          nextPaymentDate = nextMonth.toISOString();
+          
+          console.log('🔄 Updating next payment date for debt:', debtId);
+          console.log('📅 Previous date:', targetDebt.nextPaymentDate || targetDebt.dueDate);
+          console.log('📅 New next date:', nextPaymentDate);
+          
+          // Borç tablosunda da güncelle
+          await (supabase as any)
+            .from('debts')
+            .update({ next_payment_date: nextPaymentDate })
+            .eq('id', debtId);
+        }
+        
+        setDebts(prev => prev.map(debt => 
+          debt.id === debtId 
+            ? { 
+                ...debt, 
+                payments: [newPayment, ...debt.payments],
+                nextPaymentDate: nextPaymentDate || debt.nextPaymentDate
+              }
+            : debt
+        ));
+        
+        toast({ title: "Başarılı", description: "Ödeme eklendi" });
+        return; // Başarılı olursa fonksiyondan çık
+        
+      } catch (error: any) {
+        console.error('Error adding payment:', error);
+        retryCount++;
+        
+        // Son deneme değilse bekle ve tekrar dene
+        if (retryCount < maxRetries) {
+          console.log(`Retrying payment addition (attempt ${retryCount + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          continue;
+        }
+        
+        // Tüm denemeler başarısız olursa hata mesajı göster
+        const errorMessage = error.message?.includes('Failed to fetch') 
+          ? "Bağlantı sorunu tespit edildi. Lütfen antivirus yazılımınızı kontrol edin veya tekrar deneyin."
+          : "Ödeme eklenirken bir hata oluştu.";
+          
+        toast({
+          title: "Hata",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
+      }
     }
-    
-    const newPayment: Payment = {
-      id: data.id,
-      amount: Number(data.amount),
-      date: data.date,
-      debt_id: data.debt_id
-    };
-    
-    // Borcu bul ve sonraki ödeme tarihini hesapla
-    const targetDebt = debts.find(d => d.id === debtId);
-    let nextPaymentDate = undefined;
-    
-    if (targetDebt?.monthlyRepeat || (targetDebt?.installmentCount && targetDebt.installmentCount > 0)) {
-      // Mevcut next_payment_date varsa onu kullan, yoksa due_date kullan
-      const baseDate = targetDebt.nextPaymentDate ? 
-        new Date(targetDebt.nextPaymentDate) : 
-        new Date(targetDebt.dueDate);
-      
-      // Bir sonraki ay aynı güne geç
-      const nextMonth = new Date(baseDate);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      
-      nextPaymentDate = nextMonth.toISOString();
-      
-      console.log('🔄 Updating next payment date for debt:', debtId);
-      console.log('📅 Previous date:', targetDebt.nextPaymentDate || targetDebt.dueDate);
-      console.log('📅 New next date:', nextPaymentDate);
-      
-      // Borç tablosunda da güncelle
-      await (supabase as any)
-        .from('debts')
-        .update({ next_payment_date: nextPaymentDate })
-        .eq('id', debtId);
-    }
-    
-    setDebts(prev => prev.map(debt => 
-      debt.id === debtId 
-        ? { 
-            ...debt, 
-            payments: [newPayment, ...debt.payments],
-            nextPaymentDate: nextPaymentDate || debt.nextPaymentDate
-          }
-        : debt
-    ));
-    
-    toast({ title: "Başarılı", description: "Ödeme eklendi" });
   };
 
   const deleteDebt = async (id: string) => {
