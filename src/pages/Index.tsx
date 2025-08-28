@@ -77,6 +77,8 @@ interface Debt {
   id: string;
   description: string;
   totalAmount: number;
+  originalAmount?: number;
+  currency?: string;
   dueDate: string;
   installmentCount: number;
   payments: Payment[];

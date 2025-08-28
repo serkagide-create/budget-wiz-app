@@ -205,6 +205,8 @@ export const useFinancialData = () => {
       id: debt.id,
       description: debt.description,
       totalAmount: Number(debt.total_amount),
+      originalAmount: debt.original_amount ? Number(debt.original_amount) : Number(debt.total_amount),
+      currency: debt.currency || 'TRY',
       dueDate: debt.due_date,
       installmentCount: debt.installment_count,
       payments: paymentsByDebtId.get(debt.id) || [],
@@ -411,48 +413,75 @@ export const useFinancialData = () => {
   };
 
   // Debt operations
-  const addDebt = async (debt: Omit<Debt, 'id' | 'payments'>) => {
+  const addDebt = async (debt: Omit<Debt, 'id' | 'payments'> & { originalAmount?: number; currency?: string }) => {
     if (!user) return;
     
-    const { data, error } = await (supabase as any)
-      .from('debts')
-      .insert({
-        user_id: user.id,
-        description: debt.description,
-        total_amount: debt.totalAmount,
-        due_date: debt.dueDate,
-        installment_count: debt.installmentCount,
-        monthly_repeat: debt.monthlyRepeat,
-        next_payment_date: debt.nextPaymentDate,
-        category: debt.category || 'other'
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error adding debt:', error);
-      toast({
-        title: "Hata",
-        description: "Borç eklenirken bir hata oluştu.",
-        variant: "destructive"
-      });
-      return;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('debts')
+          .insert({
+            user_id: user.id,
+            description: debt.description,
+            total_amount: debt.totalAmount,
+            original_amount: debt.originalAmount || debt.totalAmount,
+            currency: debt.currency || 'TRY',
+            due_date: debt.dueDate,
+            installment_count: debt.installmentCount,
+            monthly_repeat: debt.monthlyRepeat,
+            next_payment_date: debt.nextPaymentDate,
+            category: debt.category || 'other'
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        
+        const newDebt: Debt = {
+          id: data.id,
+          description: data.description,
+          totalAmount: Number(data.total_amount),
+          originalAmount: Number(data.original_amount),
+          currency: data.currency,
+          dueDate: data.due_date,
+          installmentCount: data.installment_count,
+          payments: [],
+          monthlyRepeat: data.monthly_repeat || false,
+          nextPaymentDate: data.next_payment_date || undefined,
+          category: data.category as Debt['category'] || 'other'
+        };
+        
+        setDebts(prev => [newDebt, ...prev]);
+        toast({ title: "Başarılı", description: "Borç eklendi" });
+        return;
+        
+      } catch (error: any) {
+        retries--;
+        
+        // Kaspersky veya connection hatası kontrolü
+        if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+          if (retries === 0) {
+            toast({
+              title: "Bağlantı Hatası",
+              description: "İnternet bağlantınızı kontrol edin veya antivirus yazılımınızın (Kaspersky) engellemiş olabileceğini kontrol edin.",
+              variant: "destructive"
+            });
+          } else {
+            // Kısa bir bekleme süresi ekle
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } else {
+          console.error('Error adding debt:', error);
+          toast({
+            title: "Hata",
+            description: "Borç eklenirken bir hata oluştu.",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
     }
-    
-    const newDebt: Debt = {
-      id: data.id,
-      description: data.description,
-      totalAmount: Number(data.total_amount),
-      dueDate: data.due_date,
-      installmentCount: data.installment_count,
-      payments: [],
-      monthlyRepeat: data.monthly_repeat || false,
-      nextPaymentDate: data.next_payment_date || undefined,
-      category: data.category as Debt['category'] || 'other'
-    };
-    
-    setDebts(prev => [newDebt, ...prev]);
-    toast({ title: "Başarılı", description: "Borç eklendi" });
   };
 
   const addPayment = async (debtId: string, payment: Omit<Payment, 'id' | 'debt_id'>) => {

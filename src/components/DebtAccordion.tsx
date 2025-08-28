@@ -116,7 +116,14 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
                       <div className="flex items-center gap-4">
                         <div className="text-sm">
                           <span className="text-muted-foreground">Kalan:</span>
-                          <span className="font-bold text-expense ml-1">{formatCurrency(remaining)}</span>
+                          <span className="font-bold text-expense ml-1">
+                            {formatCurrency(remaining)}
+                            {debt.currency && debt.currency !== 'TRY' && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({debt.originalAmount && formatCurrency((remaining / debt.totalAmount) * debt.originalAmount)} {debt.currency})
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <div className="flex-1 max-w-32">
                           <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -155,7 +162,14 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>İlerleme ({progress.toFixed(0)}%)</span>
-                    <span>{formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}</span>
+                    <span>
+                      {formatCurrency(totalPaid)} / {formatCurrency(debt.totalAmount)}
+                      {debt.currency && debt.currency !== 'TRY' && debt.originalAmount && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({formatCurrency((totalPaid / debt.totalAmount) * debt.originalAmount)} / {formatCurrency(debt.originalAmount)} {debt.currency})
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>

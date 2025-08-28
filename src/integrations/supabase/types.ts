@@ -48,12 +48,14 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          currency: string | null
           description: string
           due_date: string
           id: string
           installment_count: number
           monthly_repeat: boolean | null
           next_payment_date: string | null
+          original_amount: number | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -61,12 +63,14 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          currency?: string | null
           description: string
           due_date: string
           id?: string
           installment_count: number
           monthly_repeat?: boolean | null
           next_payment_date?: string | null
+          original_amount?: number | null
           total_amount: number
           updated_at?: string
           user_id: string
@@ -74,12 +78,14 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          currency?: string | null
           description?: string
           due_date?: string
           id?: string
           installment_count?: number
           monthly_repeat?: boolean | null
           next_payment_date?: string | null
+          original_amount?: number | null
           total_amount?: number
           updated_at?: string
           user_id?: string
