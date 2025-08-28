@@ -81,7 +81,7 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
       {debtItems.map(({ debt, index, totalPaid, remaining, progress, daysLeft, isWarning, warningText, nextPaymentDate }) => {
 
         return (
-          <AccordionItem key={debt.id} value={debt.id} className={`border rounded-lg ${isWarning ? 'border-destructive bg-destructive/5' : 'border-border bg-card/50'} overflow-hidden`}>
+          <AccordionItem key={debt.id} value={debt.id} className={`border-2 rounded-xl shadow-sm ${isWarning ? 'border-destructive/60 bg-destructive/10 shadow-destructive/20' : 'border-border/40 bg-card shadow-card/20'} overflow-hidden mb-3`}>
             <AccordionTrigger className="hover:no-underline p-0">
               <div className="w-full">
                 {/* Header with debt name */}
