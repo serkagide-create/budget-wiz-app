@@ -84,10 +84,10 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
           <AccordionItem key={debt.id} value={debt.id} className={`
             border-2 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300
             ${isWarning 
-              ? 'border-destructive/60 bg-gradient-to-br from-destructive/15 to-destructive/5 shadow-destructive/30' 
+              ? 'border-destructive border-destructive/80 bg-gradient-to-br from-destructive/15 to-destructive/5 shadow-destructive/30' 
               : index % 2 === 0 
-                ? 'border-primary/30 bg-gradient-to-br from-card to-muted/30 shadow-primary/10' 
-                : 'border-secondary/30 bg-gradient-to-br from-muted/50 to-card shadow-secondary/10'
+                ? 'border-primary border-primary/40 bg-gradient-to-br from-card to-muted/30 shadow-primary/10' 
+                : 'border-secondary border-secondary/40 bg-gradient-to-br from-muted/50 to-card shadow-secondary/10'
             } 
             overflow-hidden mb-4 backdrop-blur-sm
           `}>
