@@ -97,10 +97,6 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
                 <div className="bg-muted/30 px-4 py-2 border-b">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="text-primary">
-                        {getDebtCategoryIcon(debt.category || 'other')}
-                      </div>
-                      <h3 className="font-semibold text-foreground">{debt.description}</h3>
                       <div className={`text-xs px-2 py-1 rounded-full ${
                         index === 0 ? 'bg-primary text-primary-foreground' : 
                         index === 1 ? 'bg-secondary text-secondary-foreground' :
@@ -108,6 +104,10 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
                       }`}>
                         {index === 0 ? '🎯 #1' : `#${index + 1}`}
                       </div>
+                      <div className="text-primary">
+                        {getDebtCategoryIcon(debt.category || 'other')}
+                      </div>
+                      <h3 className="font-semibold text-foreground">{debt.description}</h3>
                     </div>
                     {isWarning && (
                       <Badge variant="destructive" className="text-xs">

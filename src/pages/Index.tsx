@@ -189,7 +189,7 @@ const BudgetApp = () => {
       'car-loan': <Car className="w-5 h-5" />,
       'bill': <FileText className="w-5 h-5" />,
       'installment': <ShoppingCart className="w-5 h-5" />,
-      'other': <Receipt className="w-5 h-5" />
+      'other': <Wallet className="w-5 h-5" />
     };
     return icons[category as keyof typeof icons] || icons.other;
   };
