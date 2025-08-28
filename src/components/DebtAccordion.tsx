@@ -140,16 +140,15 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
                           ✅ Tamamlandı
                         </Badge>
                       ) : (
-                        <Button 
+                        <div 
                           onClick={(e) => {
                             e.stopPropagation();
                             payInstallment(debt.id);
                           }} 
-                          size="sm"
-                          className="bg-primary hover:bg-primary/90"
+                          className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer transition-colors"
                         >
                           {formatCurrency(Math.min(Math.ceil(debt.totalAmount / debt.installmentCount), remaining))} Öde
-                        </Button>
+                        </div>
                       )}
                     </div>
                   </div>
