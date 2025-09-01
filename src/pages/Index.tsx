@@ -21,6 +21,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useTheme } from "next-themes";
 import { formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
 import { useCurrency, CURRENCIES } from '@/hooks/useCurrency';
+import { DebtStrategyAnalysis } from '@/components/DebtStrategyAnalysis';
+import { BudgetAnalysis } from '@/components/BudgetAnalysis';
+import { FinancialPlanning } from '@/components/FinancialPlanning';
+import { GoalTracking } from '@/components/GoalTracking';
 import { 
   PlusCircle, 
   Trash2, 
@@ -51,7 +55,8 @@ import {
   ShoppingCart,
   Receipt,
   Edit,
-  ArrowLeftRight
+  ArrowLeftRight,
+  BarChart3
 } from 'lucide-react';
 
 import brandLogo from '@/assets/borc-yok-logo-1.png';
@@ -140,7 +145,7 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'settings' | 'planning'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
 
   // AI Assistant State
@@ -952,6 +957,61 @@ const BudgetApp = () => {
     </div>
   );
 
+  const renderPlanning = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold">Finansal Planlama & Analiz</h2>
+        <p className="text-muted-foreground text-sm">Borç stratejinizi analiz edin ve geleceği planlayın</p>
+      </div>
+
+      <Tabs defaultValue="strategy" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="strategy">Strateji</TabsTrigger>
+          <TabsTrigger value="budget">Bütçe</TabsTrigger>
+          <TabsTrigger value="planning">Planlama</TabsTrigger>
+          <TabsTrigger value="goals">Hedefler</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="strategy" className="space-y-4">
+          <DebtStrategyAnalysis
+            debts={debts}
+            strategy={settings.debtStrategy}
+            availableDebtFund={availableDebtFund}
+          />
+        </TabsContent>
+        
+        <TabsContent value="budget" className="space-y-4">
+          <BudgetAnalysis
+            totalIncome={totalIncome}
+            totalExpenses={0} // Bu değeri expense tracking eklendikten sonra güncellenecek
+            debtPayments={totalIncome * settings.debtPercentage / 100}
+            savings={totalIncome * settings.savingsPercentage / 100}
+            settings={settings}
+          />
+        </TabsContent>
+        
+        <TabsContent value="planning" className="space-y-4">
+          <FinancialPlanning
+            debts={debts}
+            savingGoals={savingGoals}
+            monthlyIncome={totalIncome}
+            debtPercentage={settings.debtPercentage}
+            savingsPercentage={settings.savingsPercentage}
+          />
+        </TabsContent>
+        
+        <TabsContent value="goals" className="space-y-4">
+          <GoalTracking
+            savingGoals={savingGoals}
+            debts={debts}
+            monthlyIncome={totalIncome}
+            savingsPercentage={settings.savingsPercentage}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+
   const renderSettings = () => (
     <div className="space-y-6">
       <Card>
@@ -1106,6 +1166,7 @@ const BudgetApp = () => {
               onDeleteTransfer={deleteTransfer}
             />
           )}
+          {activeTab === 'planning' && renderPlanning()}
           {activeTab === 'settings' && renderSettings()}
         </div>
       </div>
@@ -1158,6 +1219,15 @@ const BudgetApp = () => {
             >
               <ArrowLeftRight className="w-5 h-5" />
               <span className="text-xs">Transfer</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('planning')}
+              className={`flex flex-col items-center justify-center gap-1 ${
+                activeTab === 'planning' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-xs">Analiz</span>
             </button>
             <button
               onClick={() => setActiveTab('settings')}
