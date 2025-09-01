@@ -121,6 +121,7 @@ const BudgetApp = () => {
     deleteIncome,
     addDebt,
     addPayment,
+    deletePayment,
     deleteDebt,
     updateDebt,
     addSavingGoal,
@@ -804,6 +805,7 @@ const BudgetApp = () => {
             payInstallment={payInstallment}
             makeCustomPayment={makeCustomPayment}
             deleteDebt={deleteDebt}
+            deletePayment={deletePayment}
           />
         )}
       </div>

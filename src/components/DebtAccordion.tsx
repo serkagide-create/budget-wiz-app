@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { AlertTriangle, Check, Edit, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, Edit, Trash2, X } from 'lucide-react';
 import { formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
 
 interface DebtAccordionProps {
@@ -22,6 +22,7 @@ interface DebtAccordionProps {
   payInstallment: (debtId: string) => void;
   makeCustomPayment: (debtId: string, amount: number) => void;
   deleteDebt: (debtId: string) => void;
+  deletePayment: (paymentId: string) => void;
 }
 
 export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
@@ -38,7 +39,8 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
   handleCancelDebtEdit,
   payInstallment,
   makeCustomPayment,
-  deleteDebt
+  deleteDebt,
+  deletePayment
 }) => {
   const debtItems = useMemo(() => 
     sortedDebts.map((debt, index) => {
@@ -283,6 +285,17 @@ export const DebtAccordion: React.FC<DebtAccordionProps> = memo(({
                               {new Date(payment.date).toLocaleDateString('tr-TR')}
                             </span>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deletePayment(payment.id);
+                            }}
+                            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
                         </div>
                       ))}
                     </div>

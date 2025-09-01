@@ -581,6 +581,57 @@ export const useFinancialData = () => {
     }
   };
 
+  const deletePayment = async (paymentId: string) => {
+    if (!user) return;
+    
+    try {
+      // Önce payment'ı bul ki hangi debt'e ait olduğunu bilelim
+      const targetDebt = debts.find(debt => 
+        debt.payments.some(payment => payment.id === paymentId)
+      );
+      
+      if (!targetDebt) {
+        toast({
+          title: "Hata",
+          description: "Ödeme bulunamadı.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Payment'ı sil
+      const { error } = await (supabase as any)
+        .from('payments')
+        .delete()
+        .eq('id', paymentId);
+      
+      if (error) throw error;
+      
+      // State'i güncelle - payment'ı kaldır
+      setDebts(prev => prev.map(debt => 
+        debt.id === targetDebt.id 
+          ? { 
+              ...debt, 
+              payments: debt.payments.filter(payment => payment.id !== paymentId)
+            }
+          : debt
+      ));
+      
+      toast({ 
+        title: "Başarılı", 
+        description: "Ödeme silindi" 
+      });
+      
+    } catch (error: any) {
+      console.error('Error deleting payment:', error);
+      toast({
+        title: "Hata",
+        description: "Ödeme silinirken bir hata oluştu.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteDebt = async (id: string) => {
     if (!user) return;
     
@@ -991,6 +1042,7 @@ export const useFinancialData = () => {
     deleteIncome,
     addDebt,
     addPayment,
+    deletePayment,
     deleteDebt,
     updateDebt,
     addSavingGoal,
