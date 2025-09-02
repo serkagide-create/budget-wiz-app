@@ -124,66 +124,112 @@ export const useFinancialData = () => {
     setLoading(false);
   };
 
+  const retryOperation = async <T,>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 1000
+  ): Promise<T> => {
+    let lastError: any;
+    
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        console.log(`Operation failed (attempt ${i + 1}/${maxRetries}):`, error);
+        
+        // If JWT expired, try to refresh the session
+        if (error?.code === 'PGRST301' || error?.code === 'PGRST303' || error?.message?.includes('JWT')) {
+          console.log('JWT issue detected, refreshing session...');
+          try {
+            const { data, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              console.error('Session refresh failed:', refreshError);
+            } else {
+              console.log('Session refreshed successfully');
+            }
+          } catch (refreshError) {
+            console.error('Session refresh error:', refreshError);
+          }
+        }
+        
+        if (i < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        }
+      }
+    }
+    
+    throw lastError;
+  };
+
   const loadIncomes = async () => {
     if (!user) return;
     
-    const { data, error } = await (supabase as any)
-      .from('incomes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
+    try {
+      const result = await retryOperation(async () => {
+        const { data, error } = await (supabase as any)
+          .from('incomes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        return data;
+      });
+      
+      const formattedIncomes: Income[] = (result || []).map((income: any) => ({
+        id: income.id,
+        description: income.description,
+        amount: Number(income.amount),
+        date: income.date,
+        category: income.category,
+        monthlyRepeat: income.monthly_repeat || false,
+        nextIncomeDate: income.next_income_date || undefined
+      }));
+      
+      setIncomes(formattedIncomes);
+    } catch (error) {
       console.error('Error loading incomes:', error);
-      return;
     }
-    
-    const formattedIncomes: Income[] = (data || []).map((income: any) => ({
-      id: income.id,
-      description: income.description,
-      amount: Number(income.amount),
-      date: income.date,
-      category: income.category,
-      monthlyRepeat: income.monthly_repeat || false,
-      nextIncomeDate: income.next_income_date || undefined
-    }));
-    
-    setIncomes(formattedIncomes);
   };
 
   const loadDebts = async () => {
     if (!user) return;
     
-    // First load debts
-    const { data: debtsData, error: debtsError } = await (supabase as any)
-      .from('debts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    try {
+      // First load debts
+      const debtsData = await retryOperation(async () => {
+        const { data, error } = await (supabase as any)
+          .from('debts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data;
+      });
+      
+      // If no debts, just set empty array
+      if (!debtsData || debtsData.length === 0) {
+        setDebts([]);
+        return;
+      }
     
-    if (debtsError) {
-      console.error('Error loading debts:', debtsError);
-      return;
-    }
-    
-    // If no debts, just set empty array
-    if (!debtsData || debtsData.length === 0) {
-      setDebts([]);
-      return;
-    }
-    
-    // Load all payments for these debts in one query
-    const debtIds = debtsData.map((d: any) => d.id);
-    const { data: allPaymentsData, error: paymentsError } = await (supabase as any)
-      .from('payments')
-      .select('*')
-      .in('debt_id', debtIds)
-      .order('date', { ascending: false });
-    
-    if (paymentsError) {
-      console.error('Error loading payments:', paymentsError);
-      return;
-    }
+      // Load all payments for these debts in one query
+      const debtIds = debtsData.map((d: any) => d.id);
+      const allPaymentsData = await retryOperation(async () => {
+        const { data, error } = await (supabase as any)
+          .from('payments')
+          .select('*')
+          .in('debt_id', debtIds)
+          .order('date', { ascending: false });
+        
+        if (error) throw error;
+        return data;
+      });
     
     // Group payments by debt_id for efficient lookup
     const paymentsByDebtId = new Map<string, Payment[]>();
@@ -214,34 +260,41 @@ export const useFinancialData = () => {
       nextPaymentDate: debt.next_payment_date || undefined,
       category: debt.category as Debt['category'] || 'other'
     }));
-    
-    setDebts(debtsWithPayments);
+      
+      setDebts(debtsWithPayments);
+    } catch (error) {
+      console.error('Error loading debts:', error);
+    }
   };
 
   const loadSavingGoals = async () => {
     if (!user) return;
     
-    const { data, error } = await (supabase as any)
-      .from('saving_goals')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
+    try {
+      const result = await retryOperation(async () => {
+        const { data, error } = await (supabase as any)
+          .from('saving_goals')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data;
+      });
+      
+      const formattedGoals: SavingGoal[] = (result || []).map((goal: any) => ({
+        id: goal.id,
+        title: goal.title,
+        targetAmount: Number(goal.target_amount),
+        currentAmount: Number(goal.current_amount),
+        category: goal.category as SavingGoal['category'],
+        deadline: goal.deadline
+      }));
+      
+      setSavingGoals(formattedGoals);
+    } catch (error) {
       console.error('Error loading saving goals:', error);
-      return;
     }
-    
-    const formattedGoals: SavingGoal[] = (data || []).map((goal: any) => ({
-      id: goal.id,
-      title: goal.title,
-      targetAmount: Number(goal.target_amount),
-      currentAmount: Number(goal.current_amount),
-      category: goal.category as SavingGoal['category'],
-      deadline: goal.deadline
-    }));
-    
-    setSavingGoals(formattedGoals);
   };
 
   const loadSettings = async () => {
@@ -249,59 +302,70 @@ export const useFinancialData = () => {
     
     console.log('Loading settings for user:', user.id);
     
-    const { data, error } = await (supabase as any)
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    
-    console.log('Settings loaded from DB:', data, 'error:', error);
-    
-    if (error && error.code !== 'PGRST116') {
+    try {
+      const result = await retryOperation(async () => {
+        const { data, error } = await (supabase as any)
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+        
+        return data;
+      });
+      
+      console.log('Settings loaded from DB:', result);
+      
+      if (result) {
+        const loadedSettings = {
+          debtPercentage: result.debt_percentage !== null ? result.debt_percentage : 30,
+          savingsPercentage: result.savings_percentage !== null ? result.savings_percentage : 20,
+          debtStrategy: result.debt_strategy as Settings['debtStrategy'] || 'snowball',
+          balance: result.balance || 0,
+          debtFund: result.debt_fund || 0,
+          savingsFund: result.savings_fund || 0
+        };
+        console.log('Setting loaded settings:', loadedSettings);
+        setSettings(loadedSettings);
+      } else {
+        console.log('No settings found in DB, using defaults');
+      }
+    } catch (error) {
       console.error('Error loading settings:', error);
-      return;
-    }
-    
-    if (data) {
-      const loadedSettings = {
-        debtPercentage: data.debt_percentage !== null ? data.debt_percentage : 30,
-        savingsPercentage: data.savings_percentage !== null ? data.savings_percentage : 20,
-        debtStrategy: data.debt_strategy as Settings['debtStrategy'] || 'snowball',
-        balance: data.balance || 0,
-        debtFund: data.debt_fund || 0,
-        savingsFund: data.savings_fund || 0
-      };
-      console.log('Setting loaded settings:', loadedSettings);
-      setSettings(loadedSettings);
-    } else {
-      console.log('No settings found in DB, using defaults');
     }
   };
 
   const loadTransfers = async () => {
     if (!user) return;
     
-    const { data, error } = await (supabase as any)
-      .from('transfers')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    try {
+      const result = await retryOperation(async () => {
+        const { data, error } = await (supabase as any)
+          .from('transfers')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
-    if (error) {
+        if (error) throw error;
+        return data;
+      });
+
+      if (result) {
+        setTransfers(result.map((transfer: any) => ({
+          id: transfer.id,
+          fromFund: transfer.from_fund as 'balance' | 'debt_fund' | 'savings_fund',
+          toFund: transfer.to_fund as 'balance' | 'debt_fund' | 'savings_fund',
+          amount: parseFloat(transfer.amount?.toString() || '0'),
+          description: transfer.description || '',
+          transferType: transfer.transfer_type as 'manual' | 'automatic',
+          createdAt: transfer.created_at
+        })));
+      }
+    } catch (error) {
       console.error('Error loading transfers:', error);
-      return;
-    }
-
-    if (data) {
-      setTransfers(data.map((transfer: any) => ({
-        id: transfer.id,
-        fromFund: transfer.from_fund as 'balance' | 'debt_fund' | 'savings_fund',
-        toFund: transfer.to_fund as 'balance' | 'debt_fund' | 'savings_fund',
-        amount: parseFloat(transfer.amount?.toString() || '0'),
-        description: transfer.description || '',
-        transferType: transfer.transfer_type as 'manual' | 'automatic',
-        createdAt: transfer.created_at
-      })));
     }
   };
 
