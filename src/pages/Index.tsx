@@ -64,6 +64,8 @@ interface Income {
   id: string;
   description: string;
   amount: number;
+  originalAmount?: number;
+  currency?: string;
   date: string;
   category: string;
   monthlyRepeat?: boolean;
@@ -160,7 +162,7 @@ const BudgetApp = () => {
   const synthRef = useRef<any>(null);
 
   // Form States
-  const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
+  const [incomeForm, setIncomeForm] = useState({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0], currency: 'TRY' });
   const [debtForm, setDebtForm] = useState({ description: '', amount: '', dueDate: '', installmentCount: '', monthlyRepeat: false, category: 'other' as Debt['category'], currency: 'TRY' });
   const [savingForm, setSavingForm] = useState({ 
     title: '', 
@@ -228,9 +230,14 @@ const BudgetApp = () => {
     }
 
     try {
+      const originalAmount = parseFloat(incomeForm.amount);
+      const totalAmountInTRY = convertToTRY(originalAmount, incomeForm.currency);
+      
       await addIncome({
         description: incomeForm.description,
-        amount: parseFloat(incomeForm.amount),
+        amount: totalAmountInTRY,
+        originalAmount: originalAmount,
+        currency: incomeForm.currency,
         date: incomeForm.date,
         category: incomeForm.category,
         monthlyRepeat: incomeForm.monthlyRepeat,
@@ -239,7 +246,7 @@ const BudgetApp = () => {
           undefined
       });
       
-      setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0] });
+      setIncomeForm({ description: '', amount: '', category: '', monthlyRepeat: false, date: new Date().toISOString().split('T')[0], currency: 'TRY' });
       toast({ title: "Başarılı", description: "Gelir eklendi" });
     } catch (error) {
       toast({ title: "Hata", description: "Gelir eklenirken hata oluştu", variant: "destructive" });
@@ -627,10 +634,25 @@ const BudgetApp = () => {
               value={incomeForm.description}
               onChange={(e) => setIncomeForm(prev => ({ ...prev, description: e.target.value }))}
             />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <Select
+                value={incomeForm.currency}
+                onValueChange={(value) => setIncomeForm(prev => ({ ...prev, currency: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Para birimi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.flag} {currency.code} - {currency.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 type="number"
-                placeholder="Tutar (₺)"
+                placeholder={`Tutar (${incomeForm.currency === 'TRY' ? '₺' : CURRENCIES.find(c => c.code === incomeForm.currency)?.symbol || ''})`}
                 value={incomeForm.amount}
                 onChange={(e) => setIncomeForm(prev => ({ ...prev, amount: e.target.value }))}
               />
@@ -646,10 +668,16 @@ const BudgetApp = () => {
                   <SelectItem value="freelance">💻 Serbest İş</SelectItem>
                   <SelectItem value="rental">🏠 Kira Geliri</SelectItem>
                   <SelectItem value="investment">📈 Yatırım</SelectItem>
+                  <SelectItem value="gold">🟡 Altın</SelectItem>
                   <SelectItem value="other">📋 Diğer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {incomeForm.currency !== 'TRY' && incomeForm.amount && (
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                TRY karşılığı: {formatCurrency(convertToTRY(parseFloat(incomeForm.amount), incomeForm.currency))}
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 type="date"
@@ -690,13 +718,23 @@ const BudgetApp = () => {
                   <div>
                     <h3 className="font-medium">{income.description}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {formatDate(income.date)} • {income.category}
+                      {formatDate(income.date)} • {income.category} 
+                      {income.currency && income.currency !== 'TRY' && (
+                        <>• {income.currency}</>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-income">
-                      {formatCurrency(income.amount)}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-bold text-income block">
+                        {formatCurrency(income.amount)}
+                      </span>
+                      {income.currency && income.currency !== 'TRY' && income.originalAmount && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatAmount(income.originalAmount, income.currency)}
+                        </span>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"

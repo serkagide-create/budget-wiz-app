@@ -8,6 +8,7 @@ export interface ExchangeRates {
   CHF: number;
   CAD: number;
   AUD: number;
+  GOLD: number;
 }
 
 export interface Currency {
@@ -26,6 +27,7 @@ export const CURRENCIES: Currency[] = [
   { code: 'CHF', name: 'İsviçre Frangı', symbol: 'Fr', flag: '🇨🇭' },
   { code: 'CAD', name: 'Kanada Doları', symbol: 'C$', flag: '🇨🇦' },
   { code: 'AUD', name: 'Avustralya Doları', symbol: 'A$', flag: '🇦🇺' },
+  { code: 'GOLD', name: 'Altın (Gram)', symbol: 'gr', flag: '🟡' },
 ];
 
 const useCurrency = () => {
@@ -37,6 +39,7 @@ const useCurrency = () => {
     CHF: 38.60,
     CAD: 25.40,
     AUD: 22.80,
+    GOLD: 2680.00, // Approximate gold price per gram in TRY
   });
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -44,12 +47,23 @@ const useCurrency = () => {
   const fetchExchangeRates = async () => {
     setLoading(true);
     try {
-      // Using a free exchange rate API
+      // Using a free exchange rate API for currencies
       const response = await fetch('https://api.exchangerate-api.com/v4/latest/TRY');
+      let newRates = {
+        USD: 34.50,
+        EUR: 37.80,
+        GBP: 43.20,
+        JPY: 0.24,
+        CHF: 38.60,
+        CAD: 25.40,
+        AUD: 22.80,
+        GOLD: 2680.00,
+      };
+
       if (response.ok) {
         const data = await response.json();
         // Convert from TRY to other currencies to get TRY rates
-        setExchangeRates({
+        newRates = {
           USD: 1 / data.rates.USD,
           EUR: 1 / data.rates.EUR,
           GBP: 1 / data.rates.GBP,
@@ -57,9 +71,26 @@ const useCurrency = () => {
           CHF: 1 / data.rates.CHF,
           CAD: 1 / data.rates.CAD,
           AUD: 1 / data.rates.AUD,
-        });
-        setLastUpdated(new Date());
+          GOLD: 2680.00, // Keep static for now, can be updated with real gold API
+        };
       }
+
+      // Try to fetch gold price from a different API
+      try {
+        const goldResponse = await fetch('https://api.metals.live/v1/spot/gold');
+        if (goldResponse.ok) {
+          const goldData = await goldResponse.json();
+          // Convert from USD per troy ounce to TRY per gram
+          const goldPriceUSD = goldData[0]?.price || 2000; // fallback to $2000/oz
+          const goldPricePerGramUSD = goldPriceUSD / 31.1035; // troy ounce to gram
+          newRates.GOLD = goldPricePerGramUSD * newRates.USD;
+        }
+      } catch (goldError) {
+        console.log('Altın fiyatı alınamadı, varsayılan değer kullanılıyor:', goldError);
+      }
+
+      setExchangeRates(newRates);
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Kur bilgileri alınamadı, varsayılan değerler kullanılıyor:', error);
       // Keep default rates if API fails
