@@ -40,6 +40,8 @@ export interface SavingGoal {
   id: string;
   title: string;
   targetAmount: number;
+  originalAmount?: number;
+  currency?: string;
   currentAmount: number;
   category: 'house' | 'car' | 'vacation' | 'education' | 'other';
   deadline: string;
@@ -290,6 +292,8 @@ export const useFinancialData = () => {
         id: goal.id,
         title: goal.title,
         targetAmount: Number(goal.target_amount),
+        originalAmount: goal.original_amount ? Number(goal.original_amount) : undefined,
+        currency: goal.currency || 'TRY',
         currentAmount: Number(goal.current_amount),
         category: goal.category as SavingGoal['category'],
         deadline: goal.deadline
@@ -784,6 +788,8 @@ export const useFinancialData = () => {
         user_id: user.id,
         title: goal.title,
         target_amount: goal.targetAmount,
+        original_amount: goal.originalAmount,
+        currency: goal.currency || 'TRY',
         current_amount: goal.currentAmount,
         category: goal.category,
         deadline: goal.deadline
@@ -805,6 +811,8 @@ export const useFinancialData = () => {
       id: data.id,
       title: data.title,
       targetAmount: Number(data.target_amount),
+      originalAmount: data.original_amount ? Number(data.original_amount) : undefined,
+      currency: data.currency || 'TRY',
       currentAmount: Number(data.current_amount),
       category: data.category,
       deadline: data.deadline
@@ -822,6 +830,8 @@ export const useFinancialData = () => {
       .update({
         title: updates.title,
         target_amount: updates.targetAmount,
+        original_amount: updates.originalAmount,
+        currency: updates.currency,
         current_amount: updates.currentAmount,
         category: updates.category,
         deadline: updates.deadline
@@ -847,6 +857,8 @@ export const useFinancialData = () => {
             id: data.id,
             title: data.title,
             targetAmount: Number(data.target_amount),
+            originalAmount: data.original_amount ? Number(data.original_amount) : undefined,
+            currency: data.currency || 'TRY',
             currentAmount: Number(data.current_amount),
             category: data.category,
             deadline: data.deadline

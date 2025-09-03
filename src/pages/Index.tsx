@@ -96,6 +96,8 @@ interface SavingGoal {
   id: string;
   title: string;
   targetAmount: number;
+  originalAmount?: number;
+  currency?: string;
   currentAmount: number;
   category: 'house' | 'car' | 'vacation' | 'education' | 'other';
   deadline: string;
@@ -168,7 +170,8 @@ const BudgetApp = () => {
     title: '', 
     targetAmount: '', 
     category: 'other' as SavingGoal['category'],
-    deadline: ''
+    deadline: '',
+    currency: 'TRY'
   });
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
   
@@ -291,15 +294,20 @@ const BudgetApp = () => {
     }
 
     try {
+      const originalAmount = parseFloat(savingForm.targetAmount);
+      const targetAmountInTRY = convertToTRY(originalAmount, savingForm.currency);
+      
       await addSavingGoal({
         title: savingForm.title,
         category: savingForm.category,
-        targetAmount: parseFloat(savingForm.targetAmount),
+        targetAmount: targetAmountInTRY,
+        originalAmount: originalAmount,
+        currency: savingForm.currency,
         currentAmount: 0,
         deadline: savingForm.deadline
       });
       
-      setSavingForm({ title: '', targetAmount: '', category: 'house', deadline: '' });
+      setSavingForm({ title: '', targetAmount: '', category: 'other', deadline: '', currency: 'TRY' });
       toast({ title: "Başarılı", description: "Birikim hedefi eklendi" });
     } catch (error) {
       toast({ title: "Hata", description: "Birikim hedefi eklenirken hata oluştu", variant: "destructive" });
@@ -903,10 +911,25 @@ const BudgetApp = () => {
               value={savingForm.title}
               onChange={(e) => setSavingForm(prev => ({ ...prev, title: e.target.value }))}
             />
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <Select
+                value={savingForm.currency}
+                onValueChange={(value) => setSavingForm(prev => ({ ...prev, currency: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Para birimi" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((currency) => (
+                    <SelectItem key={currency.code} value={currency.code}>
+                      {currency.flag} {currency.code} - {currency.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 type="number"
-                placeholder="Hedef tutar (₺)"
+                placeholder={`Hedef tutar (${savingForm.currency === 'TRY' ? '₺' : CURRENCIES.find(c => c.code === savingForm.currency)?.symbol || ''})`}
                 value={savingForm.targetAmount}
                 onChange={(e) => setSavingForm(prev => ({ ...prev, targetAmount: e.target.value }))}
               />
@@ -922,10 +945,16 @@ const BudgetApp = () => {
                   <SelectItem value="car">🚗 Araba</SelectItem>
                   <SelectItem value="vacation">🏖️ Tatil</SelectItem>
                   <SelectItem value="education">📚 Eğitim</SelectItem>
+                  <SelectItem value="gold">🟡 Altın</SelectItem>
                   <SelectItem value="other">💰 Diğer</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {savingForm.currency !== 'TRY' && savingForm.targetAmount && (
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded">
+                TRY karşılığı: {formatCurrency(convertToTRY(parseFloat(savingForm.targetAmount), savingForm.currency))}
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 type="date"
@@ -968,12 +997,17 @@ const BudgetApp = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-savings">
+                        <div className="font-bold text-savings">
                           {formatCurrency(goal.currentAmount)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
+                        </div>
+                        <div className="text-sm text-muted-foreground">
                           / {formatCurrency(goal.targetAmount)}
-                        </p>
+                          {goal.currency && goal.currency !== 'TRY' && goal.originalAmount && (
+                            <div className="text-xs">
+                              {formatAmount(goal.originalAmount, goal.currency)}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     

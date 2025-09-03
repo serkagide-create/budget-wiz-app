@@ -263,9 +263,11 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          currency: string | null
           current_amount: number | null
           deadline: string
           id: string
+          original_amount: number | null
           target_amount: number
           title: string
           updated_at: string
@@ -274,9 +276,11 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
+          currency?: string | null
           current_amount?: number | null
           deadline: string
           id?: string
+          original_amount?: number | null
           target_amount: number
           title: string
           updated_at?: string
@@ -285,9 +289,11 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          currency?: string | null
           current_amount?: number | null
           deadline?: string
           id?: string
+          original_amount?: number | null
           target_amount?: number
           title?: string
           updated_at?: string
