@@ -7,6 +7,8 @@ export interface Income {
   id: string;
   description: string;
   amount: number;
+  originalAmount?: number;
+  currency?: string;
   date: string;
   category: string;
   monthlyRepeat?: boolean;
@@ -184,6 +186,8 @@ export const useFinancialData = () => {
         id: income.id,
         description: income.description,
         amount: Number(income.amount),
+        originalAmount: income.original_amount ? Number(income.original_amount) : undefined,
+        currency: income.currency || 'TRY',
         date: income.date,
         category: income.category,
         monthlyRepeat: income.monthly_repeat || false,
@@ -379,6 +383,8 @@ export const useFinancialData = () => {
         user_id: user.id,
         description: income.description,
         amount: income.amount,
+        original_amount: income.originalAmount,
+        currency: income.currency || 'TRY',
         date: income.date,
         category: income.category,
         monthly_repeat: income.monthlyRepeat,
@@ -401,6 +407,8 @@ export const useFinancialData = () => {
       id: data.id,
       description: data.description,
       amount: Number(data.amount),
+      originalAmount: data.original_amount ? Number(data.original_amount) : undefined,
+      currency: data.currency || 'TRY',
       date: data.date,
       category: data.category,
       monthlyRepeat: data.monthly_repeat || false,

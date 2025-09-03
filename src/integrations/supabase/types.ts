@@ -157,11 +157,13 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          currency: string | null
           date: string
           description: string
           id: string
           monthly_repeat: boolean | null
           next_income_date: string | null
+          original_amount: number | null
           updated_at: string
           user_id: string
         }
@@ -169,11 +171,13 @@ export type Database = {
           amount: number
           category: string
           created_at?: string
+          currency?: string | null
           date: string
           description: string
           id?: string
           monthly_repeat?: boolean | null
           next_income_date?: string | null
+          original_amount?: number | null
           updated_at?: string
           user_id: string
         }
@@ -181,11 +185,13 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          currency?: string | null
           date?: string
           description?: string
           id?: string
           monthly_repeat?: boolean | null
           next_income_date?: string | null
+          original_amount?: number | null
           updated_at?: string
           user_id?: string
         }
