@@ -791,11 +791,41 @@ const BudgetApp = () => {
         <Card>
           <CardContent className="p-4">
             <div className="space-y-3">
-              <Input
-                placeholder="Borç açıklaması"
-                value={debtForm.description}
-                onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
-              />
+               <div className="flex gap-2">
+                 <Input
+                   placeholder="Borç açıklaması"
+                   value={debtForm.description}
+                   onChange={(e) => setDebtForm(prev => ({ ...prev, description: e.target.value }))}
+                 />
+                 <Button 
+                   variant="outline" 
+                   size="sm"
+                   onClick={() => setDebtForm({
+                     description: 'Ev Kirası',
+                     amount: '15000',
+                     dueDate: new Date(new Date().getFullYear(), new Date().getMonth(), 15).toISOString().split('T')[0],
+                     installmentCount: '1',
+                     monthlyRepeat: true,
+                     category: 'bill',
+                     currency: 'TRY'
+                   })}
+                   className="whitespace-nowrap"
+                 >
+                   Örnek Ekle
+                 </Button>
+               </div>
+               <div className="flex items-center space-x-2">
+                 <input
+                   type="checkbox"
+                   id="monthlyRepeatDebt"
+                   checked={debtForm.monthlyRepeat}
+                   onChange={(e) => setDebtForm(prev => ({ ...prev, monthlyRepeat: e.target.checked }))}
+                   className="rounded border-gray-300"
+                 />
+                 <Label htmlFor="monthlyRepeatDebt" className="text-sm">
+                   Aylık tekrarla
+                 </Label>
+               </div>
               <Select
                 value={debtForm.category}
                 onValueChange={(value) => setDebtForm(prev => ({ ...prev, category: value as Debt['category'] }))}
