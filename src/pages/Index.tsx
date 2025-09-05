@@ -103,14 +103,6 @@ interface SavingGoal {
   deadline: string;
 }
 
-interface Expense {
-  id: string;
-  amount: number;
-  date: string;
-  category: string;
-  description?: string;
-}
-
 interface Settings {
   debtPercentage: number;
   savingsPercentage: number;
@@ -130,7 +122,6 @@ const BudgetApp = () => {
     debts,
     savingGoals,
     transfers,
-    expenses,
     settings,
     loading: dataLoading,
     addIncome,
@@ -146,8 +137,6 @@ const BudgetApp = () => {
     updateSettings,
     transferFunds,
     deleteTransfer,
-    addExpense,
-    deleteExpense,
     refreshData
   } = useFinancialData();
 
@@ -158,7 +147,7 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'expenses' | 'transfers' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'settings'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
 
   // AI Assistant State
@@ -185,12 +174,6 @@ const BudgetApp = () => {
     currency: 'TRY'
   });
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
-  const [expenseForm, setExpenseForm] = useState({
-    description: '',
-    amount: '',
-    category: 'other',
-    date: new Date().toISOString().split('T')[0]
-  });
   
   // Edit States
   const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
@@ -231,20 +214,6 @@ const BudgetApp = () => {
     return icons[category as keyof typeof icons] || icons.other;
   };
 
-  const getExpenseCategoryIcon = (category: string) => {
-    const icons = {
-      'market': <ShoppingCart className="w-5 h-5" />,
-      'transport': <Car className="w-5 h-5" />,
-      'fuel': <Car className="w-5 h-5" />,
-      'bills': <Receipt className="w-5 h-5" />,
-      'healthcare': <FileText className="w-5 h-5" />,
-      'entertainment': <Plane className="w-5 h-5" />,
-      'clothing': <ShoppingCart className="w-5 h-5" />,
-      'education': <BookOpen className="w-5 h-5" />,
-      'other': <Wallet className="w-5 h-5" />
-    };
-    return icons[category as keyof typeof icons] || icons.other;
-  };
 
   const getCategoryEmoji = (category: string) => {
     const emojis = {
@@ -346,26 +315,6 @@ const BudgetApp = () => {
     }
   };
 
-  const handleAddExpense = async () => {
-    if (!expenseForm.description || !expenseForm.amount || !expenseForm.category || !expenseForm.date) {
-      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
-      return;
-    }
-
-    try {
-      await addExpense({
-        description: expenseForm.description,
-        amount: parseFloat(expenseForm.amount),
-        category: expenseForm.category,
-        date: expenseForm.date
-      });
-      
-      setExpenseForm({ description: '', amount: '', category: 'other', date: new Date().toISOString().split('T')[0] });
-      toast({ title: "Başarılı", description: "Gider eklendi" });
-    } catch (error) {
-      toast({ title: "Hata", description: "Gider eklenirken hata oluştu", variant: "destructive" });
-    }
-  };
 
   const handleAddSavingAmount = async (goalId: string, amount: number) => {
     try {
@@ -1284,7 +1233,6 @@ const BudgetApp = () => {
           {activeTab === 'incomes' && renderIncomes()}
           {activeTab === 'debts' && renderDebts()}
           {activeTab === 'saving-goals' && renderSavingGoals()}
-          {activeTab === 'expenses' && renderExpenses()}
           {activeTab === 'transfers' && (
             <FundTransfer 
               settings={{...settings, balance: totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100}} 
@@ -1341,15 +1289,6 @@ const BudgetApp = () => {
               <span className="text-xs">Birikimler</span>
             </button>
             <button
-              onClick={() => setActiveTab('expenses')}
-              className={`flex flex-col items-center justify-center gap-1 ${
-                activeTab === 'expenses' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <Receipt className="w-5 h-5" />
-              <span className="text-xs">Giderler</span>
-            </button>
-            <button
               onClick={() => setActiveTab('transfers')}
               className={`flex flex-col items-center justify-center gap-1 ${
                 activeTab === 'transfers' ? 'text-primary' : 'text-muted-foreground'
@@ -1371,129 +1310,7 @@ const BudgetApp = () => {
         </div>
       </div>
     </div>
-    );
-  };
-
-  const renderExpenses = () => {
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    
-    return (
-      <div className="space-y-4">
-        {/* Total Expenses Card */}
-        <Card className="bg-gradient-expense border-0">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-expense-foreground/80">Toplam Giderler</p>
-            <p className="text-2xl font-bold text-expense-foreground">
-              {formatCurrency(totalExpenses)}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Add Expense Form */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Gider açıklaması"
-                  value={expenseForm.description}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setExpenseForm({
-                    description: 'Market Alışverişi',
-                    amount: '250',
-                    category: 'market',
-                    date: new Date().toISOString().split('T')[0]
-                  })}
-                  className="whitespace-nowrap"
-                >
-                  Örnek Ekle
-                </Button>
-              </div>
-              <Select
-                value={expenseForm.category}
-                onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Kategori seçin" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="market">🛒 Market</SelectItem>
-                  <SelectItem value="transport">🚌 Ulaşım</SelectItem>
-                  <SelectItem value="fuel">⛽ Yakıt</SelectItem>
-                  <SelectItem value="bills">📄 Faturalar</SelectItem>
-                  <SelectItem value="healthcare">🏥 Sağlık</SelectItem>
-                  <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
-                  <SelectItem value="clothing">👕 Giyim</SelectItem>
-                  <SelectItem value="education">📚 Eğitim</SelectItem>
-                  <SelectItem value="other">📋 Diğer</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Tutar (₺)"
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
-                />
-                <Input
-                  type="date"
-                  value={expenseForm.date}
-                  onChange={(e) => setExpenseForm(prev => ({ ...prev, date: e.target.value }))}
-                />
-                <Button onClick={handleAddExpense}>
-                  <PlusCircle className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Expenses List */}
-        {expenses.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Henüz gider eklenmemiş
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {expenses.map((expense) => (
-              <Card key={expense.id} className="border border-destructive/20">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {getExpenseCategoryIcon(expense.category)}
-                      <div>
-                        <p className="font-medium">{expense.description}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDate(expense.date)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-destructive">
-                        -{formatCurrency(expense.amount)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteExpense(expense.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
+  );
 
   if (loading || dataLoading) {
     return (
@@ -1505,5 +1322,6 @@ const BudgetApp = () => {
       </div>
     );
   }
+};
 
 export default BudgetApp;

@@ -66,13 +66,6 @@ export interface Transfer {
   createdAt: string;
 }
 
-export interface Expense {
-  id: string;
-  amount: number;
-  date: string;
-  category: string;
-  description?: string;
-}
 
 export const useFinancialData = () => {
   const { user } = useAuth();
@@ -82,7 +75,7 @@ export const useFinancialData = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [savingGoals, setSavingGoals] = useState<SavingGoal[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  
   const [settings, setSettings] = useState<Settings>({ 
     debtPercentage: 30, 
     savingsPercentage: 20, 
@@ -103,7 +96,7 @@ export const useFinancialData = () => {
       setDebts([]);
       setSavingGoals([]);
       setTransfers([]);
-      setExpenses([]);
+      
       setSettings({ 
         debtPercentage: 30, 
         savingsPercentage: 20, 
@@ -126,7 +119,7 @@ export const useFinancialData = () => {
         loadSavingGoals(),
         loadSettings(),
         loadTransfers(),
-        loadExpenses()
+        
       ]);
     } catch (error) {
       console.error('Error loading financial data:', error);
@@ -388,34 +381,6 @@ export const useFinancialData = () => {
     }
   };
 
-  const loadExpenses = async () => {
-    if (!user) return;
-    
-    try {
-      const result = await retryOperation(async () => {
-        const { data, error } = await (supabase as any)
-          .from('expenses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false });
-        
-        if (error) throw error;
-        return data;
-      });
-      
-      const formattedExpenses: Expense[] = (result || []).map((expense: any) => ({
-        id: expense.id,
-        amount: Number(expense.amount),
-        date: expense.date,
-        category: expense.category,
-        description: expense.description
-      }));
-      
-      setExpenses(formattedExpenses);
-    } catch (error) {
-      console.error('Error loading expenses:', error);
-    }
-  };
 
   // Income operations
   const addIncome = async (income: Omit<Income, 'id'>) => {
@@ -1155,73 +1120,13 @@ export const useFinancialData = () => {
     }
   };
 
-  const addExpense = async (expense: Omit<Expense, 'id'>) => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await (supabase as any)
-        .from('expenses')
-        .insert({
-          user_id: user.id,
-          amount: expense.amount,
-          date: expense.date,
-          category: expense.category,
-          description: expense.description
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      const newExpense: Expense = {
-        id: data.id,
-        amount: Number(data.amount),
-        date: data.date,
-        category: data.category,
-        description: data.description
-      };
-      
-      setExpenses(prev => [newExpense, ...prev]);
-      toast({ title: "Başarılı", description: "Gider eklendi" });
-    } catch (error) {
-      console.error('Error adding expense:', error);
-      toast({
-        title: "Hata",
-        description: "Gider eklenirken bir hata oluştu.",
-        variant: "destructive"
-      });
-    }
-  };
 
-  const deleteExpense = async (expenseId: string) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await (supabase as any)
-        .from('expenses')
-        .delete()
-        .eq('id', expenseId);
-      
-      if (error) throw error;
-      
-      setExpenses(prev => prev.filter(expense => expense.id !== expenseId));
-      toast({ title: "Başarılı", description: "Gider silindi" });
-    } catch (error) {
-      console.error('Error deleting expense:', error);
-      toast({
-        title: "Hata",
-        description: "Gider silinirken bir hata oluştu.",
-        variant: "destructive"
-      });
-    }
-  };
 
   return {
     incomes,
     debts,
     savingGoals,
     transfers,
-    expenses,
     settings,
     loading,
     addIncome,
@@ -1237,8 +1142,6 @@ export const useFinancialData = () => {
     updateSettings,
     transferFunds,
     deleteTransfer,
-    addExpense,
-    deleteExpense,
     refreshData: loadAllData
   };
 };
