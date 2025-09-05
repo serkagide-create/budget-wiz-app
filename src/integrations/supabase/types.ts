@@ -16,29 +16,35 @@ export type Database = {
     Tables: {
       budgets: {
         Row: {
+          alert_threshold: number | null
           amount: number
           category: string
           created_at: string
           id: string
           period_start: string
+          spent_amount: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          alert_threshold?: number | null
           amount: number
           category: string
           created_at?: string
           id?: string
           period_start?: string
+          spent_amount?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          alert_threshold?: number | null
           amount?: number
           category?: string
           created_at?: string
           id?: string
           period_start?: string
+          spent_amount?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -95,6 +101,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          budget_id: string | null
           category: string
           created_at: string
           date: string
@@ -105,6 +112,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          budget_id?: string | null
           category: string
           created_at?: string
           date: string
@@ -115,6 +123,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          budget_id?: string | null
           category?: string
           created_at?: string
           date?: string
@@ -123,7 +132,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "budgets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       financial_milestones_log: {
         Row: {
@@ -342,6 +359,7 @@ export type Database = {
           debt_percentage: number | null
           debt_strategy: string | null
           id: string
+          living_expenses_percentage: number | null
           savings_fund: number | null
           savings_percentage: number | null
           updated_at: string
@@ -354,6 +372,7 @@ export type Database = {
           debt_percentage?: number | null
           debt_strategy?: string | null
           id?: string
+          living_expenses_percentage?: number | null
           savings_fund?: number | null
           savings_percentage?: number | null
           updated_at?: string
@@ -366,6 +385,7 @@ export type Database = {
           debt_percentage?: number | null
           debt_strategy?: string | null
           id?: string
+          living_expenses_percentage?: number | null
           savings_fund?: number | null
           savings_percentage?: number | null
           updated_at?: string
@@ -378,6 +398,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      recalculate_budget_spent_amounts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       revert_transfer: {
         Args: { p_transfer_id: string }
         Returns: undefined
