@@ -78,6 +78,11 @@ export default {
 					foreground: 'hsl(var(--savings-foreground))',
 					light: 'hsl(var(--savings-light))'
 				},
+				spendable: {
+					DEFAULT: 'hsl(var(--spendable))',
+					foreground: 'hsl(var(--spendable-foreground))',
+					light: 'hsl(var(--spendable-light))'
+				},
 				warning: {
 					DEFAULT: 'hsl(var(--warning))',
 					foreground: 'hsl(var(--warning-foreground))'
@@ -87,6 +92,7 @@ export default {
 				'gradient-income': 'var(--gradient-income)',
 				'gradient-expense': 'var(--gradient-expense)',
 				'gradient-savings': 'var(--gradient-savings)',
+				'gradient-spendable': 'var(--gradient-spendable)',
 				'gradient-card': 'var(--gradient-card)'
 			},
 			boxShadow: {

@@ -49,6 +49,10 @@
     --savings-foreground: 0 0% 98%;
     --savings-light: 213.3 85% 75%;
 
+    --spendable: 271.5 81% 55.9%;
+    --spendable-foreground: 0 0% 98%;
+    --spendable-light: 271.5 75% 65%;
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
 
@@ -56,6 +60,7 @@
     --gradient-income: linear-gradient(135deg, hsl(var(--income)), hsl(var(--income-light)));
     --gradient-expense: linear-gradient(135deg, hsl(var(--expense)), hsl(var(--expense-light)));
     --gradient-savings: linear-gradient(135deg, hsl(var(--savings)), hsl(var(--savings-light)));
+    --gradient-spendable: linear-gradient(135deg, hsl(var(--spendable)), hsl(var(--spendable-light)));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 95%));
 
     /* Shadows */

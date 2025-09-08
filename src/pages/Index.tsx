@@ -528,16 +528,16 @@ const BudgetApp = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-accent border-0">
+        <Card className="bg-gradient-spendable border-0">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-primary-foreground/80">Harcanabilir Fon (%{settings.livingExpensesPercentage})</p>
-                <p className="text-xl font-bold text-primary-foreground">
+                <p className="text-sm text-spendable-foreground/80">Harcanabilir Fon (%{settings.livingExpensesPercentage})</p>
+                <p className="text-xl font-bold text-spendable-foreground">
                   {formatCurrency(availableLivingExpensesFund)}
                 </p>
               </div>
-              <CreditCard className="w-8 h-8 text-primary-foreground/60" />
+              <CreditCard className="w-8 h-8 text-spendable-foreground/60" />
             </div>
           </CardContent>
         </Card>
