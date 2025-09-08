@@ -14,6 +14,7 @@ interface FundTransferProps {
   transfers: Transfer[];
   availableDebtFund: number;
   availableSavingsFund: number;
+  availableLivingExpensesFund: number;
   onTransfer: (fromFund: 'balance' | 'debt_fund' | 'savings_fund', toFund: 'balance' | 'debt_fund' | 'savings_fund', amount: number, description?: string) => Promise<{ success: boolean; error?: string }>;
   onDeleteTransfer: (transferId: string) => Promise<{ success: boolean; error?: string }>;
 }
@@ -44,7 +45,15 @@ const getFundName = (fund: string) => {
   }
 };
 
-const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, availableDebtFund, availableSavingsFund, onTransfer, onDeleteTransfer }) => {
+const FundTransfer: React.FC<FundTransferProps> = ({ 
+  settings, 
+  transfers, 
+  availableDebtFund, 
+  availableSavingsFund, 
+  availableLivingExpensesFund,
+  onTransfer, 
+  onDeleteTransfer 
+}) => {
   const [fromFund, setFromFund] = useState<'balance' | 'debt_fund' | 'savings_fund'>('balance');
   const [toFund, setToFund] = useState<'balance' | 'debt_fund' | 'savings_fund'>('debt_fund');
   const [amount, setAmount] = useState('');
@@ -54,7 +63,7 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, availa
   const getAvailableBalance = (fund: 'balance' | 'debt_fund' | 'savings_fund') => {
     switch (fund) {
       case 'balance':
-        return settings.balance || 0;
+        return availableLivingExpensesFund;
       case 'debt_fund':
         return availableDebtFund;
       case 'savings_fund':
@@ -104,8 +113,8 @@ const FundTransfer: React.FC<FundTransferProps> = ({ settings, transfers, availa
                 <Wallet className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-muted-foreground truncate">Harcanabilir Tutar</p>
-                <p className="text-lg font-bold truncate">{formatCurrency(settings.balance || 0)}</p>
+                <p className="text-xs font-medium text-muted-foreground truncate">Harcanabilir Fon</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(availableLivingExpensesFund)}</p>
               </div>
             </div>
           </CardContent>

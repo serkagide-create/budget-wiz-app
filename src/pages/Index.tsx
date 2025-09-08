@@ -34,6 +34,7 @@ import {
   Plane,
   BookOpen,
   Wallet,
+  CreditCard,
   Settings,
   ChevronRight,
   Calendar,
@@ -47,7 +48,6 @@ import {
   VolumeX,
   LogOut,
   User,
-  CreditCard,
   Building2,
   FileText,
   ShoppingCart,
@@ -485,7 +485,7 @@ const BudgetApp = () => {
   const renderDashboard = () => (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="bg-gradient-income border-0">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -524,6 +524,20 @@ const BudgetApp = () => {
                 </p>
               </div>
               <Wallet className="w-8 h-8 text-savings-foreground/60" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-accent border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-primary-foreground/80">Harcanabilir Fon (%{settings.livingExpensesPercentage})</p>
+                <p className="text-xl font-bold text-primary-foreground">
+                  {formatCurrency(availableLivingExpensesFund)}
+                </p>
+              </div>
+              <CreditCard className="w-8 h-8 text-primary-foreground/60" />
             </div>
           </CardContent>
         </Card>
@@ -657,12 +671,12 @@ const BudgetApp = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border border-primary/20">
+          <Card className="bg-gradient-accent border-0">
             <CardContent className="p-3 text-center">
-              <p className="text-xs text-primary/80">Kalan Harcanabilir</p>
-              <p className="text-sm font-bold text-primary">%{100 - settings.debtPercentage - settings.savingsPercentage}</p>
-              <p className="text-xs text-primary/60">
-                {formatCurrency(totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100)}
+              <p className="text-xs text-primary-foreground/80">Harcanabilir Fon</p>
+              <p className="text-sm font-bold text-primary-foreground">%{settings.livingExpensesPercentage}</p>
+              <p className="text-xs text-primary-foreground/60">
+                {formatCurrency(availableLivingExpensesFund)}
               </p>
             </CardContent>
           </Card>
@@ -1418,10 +1432,11 @@ const BudgetApp = () => {
           {activeTab === 'expenses' && renderExpenses()}
           {activeTab === 'transfers' && (
             <FundTransfer 
-              settings={{...settings, balance: totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100}} 
+              settings={settings} 
               transfers={transfers}
               availableDebtFund={availableDebtFund}
               availableSavingsFund={availableSavingsFund}
+              availableLivingExpensesFund={availableLivingExpensesFund}
               onTransfer={transferFunds}
               onDeleteTransfer={deleteTransfer}
             />
