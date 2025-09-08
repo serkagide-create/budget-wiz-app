@@ -122,6 +122,8 @@ const BudgetApp = () => {
     debts,
     savingGoals,
     transfers,
+    expenses,
+    budgets,
     settings,
     loading: dataLoading,
     addIncome,
@@ -137,6 +139,8 @@ const BudgetApp = () => {
     updateSettings,
     transferFunds,
     deleteTransfer,
+    addExpense,
+    deleteExpense,
     refreshData
   } = useFinancialData();
 
@@ -147,7 +151,7 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'expenses' | 'settings'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
 
   // AI Assistant State
@@ -172,6 +176,12 @@ const BudgetApp = () => {
     category: 'other' as SavingGoal['category'],
     deadline: '',
     currency: 'TRY'
+  });
+  const [expenseForm, setExpenseForm] = useState({ 
+    description: '', 
+    amount: '', 
+    category: '',
+    date: new Date().toISOString().split('T')[0]
   });
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
   
@@ -315,6 +325,27 @@ const BudgetApp = () => {
     }
   };
 
+  const handleAddExpense = async () => {
+    if (!expenseForm.description || !expenseForm.amount || !expenseForm.category) {
+      toast({ title: "Hata", description: "Lütfen tüm alanları doldurun", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await addExpense({
+        description: expenseForm.description,
+        amount: parseFloat(expenseForm.amount),
+        category: expenseForm.category,
+        date: expenseForm.date
+      });
+      
+      setExpenseForm({ description: '', amount: '', category: '', date: new Date().toISOString().split('T')[0] });
+      toast({ title: "Başarılı", description: "Gider eklendi" });
+    } catch (error) {
+      toast({ title: "Hata", description: "Gider eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
 
   const handleAddSavingAmount = async (goalId: string, amount: number) => {
     try {
@@ -412,14 +443,17 @@ const BudgetApp = () => {
 
   // Calculations
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const debtFund = (totalIncome * settings.debtPercentage) / 100;
   const savingsFund = (totalIncome * settings.savingsPercentage) / 100;
+  const livingExpensesFund = (totalIncome * settings.livingExpensesPercentage) / 100;
   const usedDebtFund = debts.reduce((sum, debt) => 
     sum + debt.payments.reduce((paySum, payment) => paySum + payment.amount, 0), 0
   );
   const usedSavingsFund = savingGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
   const availableDebtFund = Math.max(0, debtFund - usedDebtFund);
   const availableSavingsFund = Math.max(0, savingsFund - usedSavingsFund);
+  const availableLivingExpensesFund = Math.max(0, livingExpensesFund - totalExpenses);
 
   // Debt Strategy Logic
   const getSortedDebts = () => {
@@ -558,7 +592,7 @@ const BudgetApp = () => {
           <TabsContent value="budget" className="space-y-4">
             <BudgetAnalysis
               totalIncome={totalIncome}
-              totalExpenses={0} // Bu değeri expense tracking eklendikten sonra güncellenecek
+              totalExpenses={totalExpenses}
               debtPayments={totalIncome * settings.debtPercentage / 100}
               savings={totalIncome * settings.savingsPercentage / 100}
               settings={settings}
@@ -1088,6 +1122,140 @@ const BudgetApp = () => {
     </div>
   );
 
+  const renderExpenses = () => (
+    <div className="space-y-4">
+      {/* Available Living Expenses Fund */}
+      <Card className="bg-gradient-to-b from-orange-500/20 to-orange-500/5 border border-orange-500/20">
+        <CardContent className="p-4 text-center">
+          <p className="text-sm text-orange-700 dark:text-orange-300/80">Kullanılabilir Yaşam Masrafları Fonu</p>
+          <p className="text-2xl font-bold text-orange-800 dark:text-orange-300">
+            {formatCurrency(availableLivingExpensesFund)}
+          </p>
+          <p className="text-xs text-orange-600 dark:text-orange-400/80 mt-1">
+            %{settings.livingExpensesPercentage} - Toplam: {formatCurrency(livingExpensesFund)}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Add Expense Form */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Input
+              placeholder="Gider açıklaması"
+              value={expenseForm.description}
+              onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
+            />
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                type="number"
+                placeholder="Tutar"
+                value={expenseForm.amount}
+                onChange={(e) => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
+              />
+              <Select
+                value={expenseForm.category}
+                onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="food">🍽️ Yemek</SelectItem>
+                  <SelectItem value="transport">🚗 Ulaşım</SelectItem>
+                  <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
+                  <SelectItem value="utilities">⚡ Faturalar</SelectItem>
+                  <SelectItem value="health">🏥 Sağlık</SelectItem>
+                  <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
+                  <SelectItem value="education">📚 Eğitim</SelectItem>
+                  <SelectItem value="children">👶 Çocuk Masrafları</SelectItem>
+                  <SelectItem value="clothing">👕 Giyim</SelectItem>
+                  <SelectItem value="other">📋 Diğer</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={expenseForm.date}
+                onChange={(e) => setExpenseForm(prev => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+            <Button onClick={handleAddExpense} className="w-full">
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Gider Ekle
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Expenses List */}
+      {expenses.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Receipt className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+            <p className="text-muted-foreground">Henüz gider eklenmedi</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          <h3 className="font-medium text-lg">Giderlerim</h3>
+          {expenses
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .map((expense) => {
+              const getCategoryIcon = (category: string) => {
+                const icons = {
+                  food: '🍽️',
+                  transport: '🚗',
+                  shopping: '🛒',
+                  utilities: '⚡',
+                  health: '🏥',
+                  entertainment: '🎬',
+                  education: '📚',
+                  children: '👶',
+                  clothing: '👕',
+                  other: '📋'
+                };
+                return icons[category as keyof typeof icons] || icons.other;
+              };
+
+              return (
+                <Card key={expense.id} className="border border-orange-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">
+                          {getCategoryIcon(expense.category)}
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{expense.description}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {formatDate(expense.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <div className="font-bold text-orange-600 dark:text-orange-400">
+                            -{formatCurrency(expense.amount)}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteExpense(expense.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+
 
   const renderSettings = () => (
     <div className="space-y-6">
@@ -1121,6 +1289,20 @@ const BudgetApp = () => {
             />
             <p className="text-sm text-muted-foreground">
               Gelirinizin {formatCurrency((totalIncome * settings.savingsPercentage) / 100)} tutarı birikimlere ayrılacak
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Label>Yaşam Masrafları Oranı: %{settings.livingExpensesPercentage}</Label>
+            <Slider
+              value={[settings.livingExpensesPercentage]}
+              onValueChange={([value]) => updateSettings({ livingExpensesPercentage: value })}
+              max={100}
+              step={5}
+              className="w-full"
+            />
+            <p className="text-sm text-muted-foreground">
+              Gelirinizin {formatCurrency((totalIncome * settings.livingExpensesPercentage) / 100)} tutarı yaşam masraflarına ayrılacak
             </p>
           </div>
 
@@ -1233,6 +1415,7 @@ const BudgetApp = () => {
           {activeTab === 'incomes' && renderIncomes()}
           {activeTab === 'debts' && renderDebts()}
           {activeTab === 'saving-goals' && renderSavingGoals()}
+          {activeTab === 'expenses' && renderExpenses()}
           {activeTab === 'transfers' && (
             <FundTransfer 
               settings={{...settings, balance: totalIncome - (totalIncome * settings.debtPercentage) / 100 - (totalIncome * settings.savingsPercentage) / 100}} 
@@ -1287,6 +1470,15 @@ const BudgetApp = () => {
             >
               <Wallet className="w-5 h-5" />
               <span className="text-xs">Birikimler</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('expenses')}
+              className={`flex flex-col items-center justify-center gap-1 ${
+                activeTab === 'expenses' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Receipt className="w-5 h-5" />
+              <span className="text-xs">Giderler</span>
             </button>
             <button
               onClick={() => setActiveTab('transfers')}
