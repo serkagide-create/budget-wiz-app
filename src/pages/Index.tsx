@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -184,6 +185,8 @@ const BudgetApp = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
+  const [savingContributionForms, setSavingContributionForms] = useState<{[key: string]: string}>({});
+  const [savingContributionsByGoal, setSavingContributionsByGoal] = useState<Record<string, Array<{id: string; amount: number; date: string; description?: string}>>>({});
   
   // Edit States
   const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
