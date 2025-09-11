@@ -1,17 +1,21 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Check, Edit, Trash2, X, Target, Plus } from 'lucide-react';
 import { formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
+import { useCurrency, CURRENCIES } from '@/hooks/useCurrency';
 
 interface SavingContribution {
   id: string;
   amount: number;
   date: string;
   description?: string;
+  original_amount?: number;
+  original_currency?: string;
 }
 
 interface SavingGoal {
@@ -35,7 +39,7 @@ interface SavingGoalAccordionProps {
   handleEditGoal: (goal: any) => void;
   handleSaveGoalEdit: () => void;
   handleCancelGoalEdit: () => void;
-  addContribution: (goalId: string, amount: number) => void;
+  addContribution: (goalId: string, amount: number, originalAmount?: number, originalCurrency?: string) => void;
   deleteGoal: (goalId: string) => void;
   deleteContribution: (contributionId: string) => void;
 }
@@ -55,6 +59,8 @@ export const SavingGoalAccordion: React.FC<SavingGoalAccordionProps> = memo(({
   deleteGoal,
   deleteContribution
 }) => {
+  const { convertToTRY, formatAmount } = useCurrency();
+  const [contributionCurrencies, setContributionCurrencies] = useState<Record<string, string>>({});
   const goalItems = useMemo(() => 
     savingGoals.map((goal, index) => {
       const progress = (goal.current_amount / goal.target_amount) * 100;
@@ -149,7 +155,7 @@ export const SavingGoalAccordion: React.FC<SavingGoalAccordionProps> = memo(({
                           ✅ Tamamlandı
                         </Badge>
                       ) : (
-                        <div 
+                         <div 
                           onClick={(e) => {
                             e.stopPropagation();
                             // Varsayılan katkı tutarı olarak hedefin %5'i
@@ -226,18 +232,45 @@ export const SavingGoalAccordion: React.FC<SavingGoalAccordionProps> = memo(({
                 {progress < 100 && (
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Input
-                        placeholder="Katkı miktarı girin"
-                        type="number"
-                        value={contributionForms[goal.id] || ''}
-                        onChange={(e) => setContributionForms(prev => ({ ...prev, [goal.id]: e.target.value }))}
-                        className="flex-1"
-                      />
+                      <div className="flex-1">
+                        <Input
+                          placeholder="Katkı miktarı girin"
+                          type="number"
+                          value={contributionForms[goal.id] || ''}
+                          onChange={(e) => setContributionForms(prev => ({ ...prev, [goal.id]: e.target.value }))}
+                          className="w-full"
+                        />
+                        {contributionForms[goal.id] && contributionCurrencies[goal.id] && contributionCurrencies[goal.id] !== 'TRY' && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            TRY karşılığı: {formatCurrency(convertToTRY(parseFloat(contributionForms[goal.id]), contributionCurrencies[goal.id]))}
+                          </div>
+                        )}
+                      </div>
+                      <Select 
+                        value={contributionCurrencies[goal.id] || 'TRY'} 
+                        onValueChange={(currency) => setContributionCurrencies(prev => ({ ...prev, [goal.id]: currency }))}
+                      >
+                        <SelectTrigger className="w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CURRENCIES.map((currency) => (
+                            <SelectItem key={currency.code} value={currency.code}>
+                              {currency.flag} {currency.code}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button 
                         onClick={() => {
                           const amount = parseFloat(contributionForms[goal.id] || '0');
+                          const currency = contributionCurrencies[goal.id] || 'TRY';
                           if (amount > 0) {
-                            addContribution(goal.id, amount);
+                            const tryAmount = currency === 'TRY' ? amount : convertToTRY(amount, currency);
+                            const originalAmount = currency === 'TRY' ? undefined : amount;
+                            const originalCurrency = currency === 'TRY' ? undefined : currency;
+                            
+                            addContribution(goal.id, tryAmount, originalAmount, originalCurrency);
                             setContributionForms(prev => ({ ...prev, [goal.id]: '' }));
                           }
                         }} 
@@ -262,7 +295,14 @@ export const SavingGoalAccordion: React.FC<SavingGoalAccordionProps> = memo(({
                         <div key={contribution.id} className="flex justify-between items-center text-xs bg-savings/10 p-2 rounded">
                           <div className="flex items-center gap-2">
                             <Target className="w-3 h-3 text-savings" />
-                            <span className="font-medium">{formatCurrency(contribution.amount)}</span>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{formatCurrency(contribution.amount)}</span>
+                              {contribution.original_amount && contribution.original_currency && (
+                                <span className="text-muted-foreground text-[10px]">
+                                  ({formatAmount(contribution.original_amount, contribution.original_currency)})
+                                </span>
+                              )}
+                            </div>
                             <span className="text-muted-foreground">
                               {new Date(contribution.date).toLocaleDateString('tr-TR')}
                             </span>

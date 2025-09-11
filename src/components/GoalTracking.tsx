@@ -99,7 +99,7 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
   }, [syncGoalsWithContributions]);
 
   // Add contribution to saving goal
-  const addContribution = useCallback(async (goalId: string, amount: number) => {
+  const addContribution = useCallback(async (goalId: string, amount: number, originalAmount?: number, originalCurrency?: string) => {
     const tempId = `temp-${Date.now()}`;
     const nowIso = new Date().toISOString();
 
@@ -110,7 +110,14 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
             ...g,
             current_amount: g.current_amount + amount,
             contributions: [
-              { id: tempId, amount, date: nowIso, description: 'Tasarruf katkısı' },
+              { 
+                id: tempId, 
+                amount, 
+                date: nowIso, 
+                description: 'Tasarruf katkısı',
+                original_amount: originalAmount,
+                original_currency: originalCurrency
+              },
               ...(g.contributions || [])
             ]
           }
@@ -118,14 +125,22 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
     ));
 
     try {
+      const insertData: any = {
+        saving_goal_id: goalId,
+        amount,
+        date: nowIso,
+        description: 'Tasarruf katkısı'
+      };
+
+      // Add currency fields if provided
+      if (originalAmount && originalCurrency) {
+        insertData.original_amount = originalAmount;
+        insertData.original_currency = originalCurrency;
+      }
+
       const { data: inserted, error } = await supabase
         .from('saving_contributions')
-        .insert({
-          saving_goal_id: goalId,
-          amount,
-          date: nowIso,
-          description: 'Tasarruf katkısı'
-        })
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
@@ -145,7 +160,9 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
                 id: inserted.id,
                 amount: Number(inserted.amount),
                 date: inserted.date,
-                description: inserted.description
+                description: inserted.description,
+                original_amount: inserted.original_amount ? Number(inserted.original_amount) : undefined,
+                original_currency: inserted.original_currency
               } : c)
             }
           : g
