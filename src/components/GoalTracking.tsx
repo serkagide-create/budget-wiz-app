@@ -1,19 +1,28 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import { Trophy, Target, Calendar, TrendingUp, Clock, CheckCircle } from 'lucide-react';
+import { Trophy, Target, Calendar, TrendingUp, Clock, CheckCircle, Home, Car, Gift, Briefcase } from 'lucide-react';
 import { formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
+import { SavingGoalAccordion } from './SavingGoalAccordion';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import 'react-circular-progressbar/dist/styles.css';
 
 interface SavingGoal {
   id: string;
   title: string;
-  targetAmount: number;
-  currentAmount: number;
+  target_amount: number;
+  current_amount: number;
   deadline: string;
   category: string;
+  contributions?: Array<{ 
+    id: string;
+    amount: number; 
+    date: string; 
+    description?: string;
+  }>;
 }
 
 interface Debt {
@@ -24,25 +33,264 @@ interface Debt {
 }
 
 interface GoalTrackingProps {
-  savingGoals: SavingGoal[];
   debts: Debt[];
   monthlyIncome: number;
   savingsPercentage: number;
 }
 
 export const GoalTracking: React.FC<GoalTrackingProps> = ({
-  savingGoals,
   debts,
   monthlyIncome,
   savingsPercentage
 }) => {
+  const [savingGoalsData, setSavingGoalsData] = useState<SavingGoal[]>([]);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editGoalForm, setEditGoalForm] = useState<any>({});
+  const [contributionForms, setContributionForms] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+  
   const monthlySavings = (monthlyIncome * savingsPercentage) / 100;
+
+  // Load saving goals with contributions
+  const loadSavingGoals = useCallback(async () => {
+    try {
+      const { data: goals, error: goalsError } = await supabase
+        .from('saving_goals')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (goalsError) throw goalsError;
+
+      if (goals) {
+        // Load contributions for each goal
+        const goalsWithContributions = await Promise.all(
+          goals.map(async (goal) => {
+            const { data: contributions, error: contribError } = await supabase
+              .from('saving_contributions')
+              .select('*')
+              .eq('saving_goal_id', goal.id)
+              .order('date', { ascending: false });
+
+            if (contribError) console.error('Contributions error:', contribError);
+
+            return {
+              ...goal,
+              contributions: contributions || []
+            };
+          })
+        );
+
+        setSavingGoalsData(goalsWithContributions);
+      }
+    } catch (error) {
+      console.error('Error loading saving goals:', error);
+      toast({
+        title: 'Hata',
+        description: 'Tasarruf hedefleri yüklenirken hata oluştu',
+        variant: 'destructive'
+      });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadSavingGoals();
+  }, [loadSavingGoals]);
+
+  // Add contribution to saving goal
+  const addContribution = useCallback(async (goalId: string, amount: number) => {
+    try {
+      const { error } = await supabase
+        .from('saving_contributions')
+        .insert({
+          saving_goal_id: goalId,
+          amount,
+          date: new Date().toISOString(),
+          description: 'Tasarruf katkısı'
+        });
+
+      if (error) throw error;
+
+      // Update saving goal current amount
+      const goal = savingGoalsData.find(g => g.id === goalId);
+      if (goal) {
+        const { error: updateError } = await supabase
+          .from('saving_goals')
+          .update({
+            current_amount: goal.current_amount + amount
+          })
+          .eq('id', goalId);
+
+        if (updateError) throw updateError;
+      }
+
+      await loadSavingGoals();
+      
+      toast({
+        title: 'Başarılı',
+        description: `${formatCurrency(amount)} tasarrufa eklendi`,
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error adding contribution:', error);
+      toast({
+        title: 'Hata',
+        description: 'Katkı eklenirken hata oluştu',
+        variant: 'destructive'
+      });
+    }
+  }, [savingGoalsData, loadSavingGoals, toast]);
+
+  // Delete contribution
+  const deleteContribution = useCallback(async (contributionId: string) => {
+    try {
+      // Get contribution details first
+      const { data: contribution, error: getError } = await supabase
+        .from('saving_contributions')
+        .select('*, saving_goal_id')
+        .eq('id', contributionId)
+        .single();
+
+      if (getError) throw getError;
+
+      // Delete contribution
+      const { error: deleteError } = await supabase
+        .from('saving_contributions')
+        .delete()
+        .eq('id', contributionId);
+
+      if (deleteError) throw deleteError;
+
+      // Update saving goal current amount
+      const goal = savingGoalsData.find(g => g.id === contribution.saving_goal_id);
+      if (goal) {
+        const { error: updateError } = await supabase
+          .from('saving_goals')
+          .update({
+            current_amount: Math.max(0, goal.current_amount - contribution.amount)
+          })
+          .eq('id', contribution.saving_goal_id);
+
+        if (updateError) throw updateError;
+      }
+
+      await loadSavingGoals();
+      
+      toast({
+        title: 'Başarılı',
+        description: 'Katkı silindi',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error deleting contribution:', error);
+      toast({
+        title: 'Hata',
+        description: 'Katkı silinirken hata oluştu',
+        variant: 'destructive'
+      });
+    }
+  }, [savingGoalsData, loadSavingGoals, toast]);
+
+  // Edit saving goal
+  const handleEditGoal = useCallback((goal: SavingGoal) => {
+    setEditingGoalId(goal.id);
+    setEditGoalForm({
+      title: goal.title,
+      target_amount: goal.target_amount.toString(),
+      deadline: goal.deadline.split('T')[0]
+    });
+  }, []);
+
+  const handleSaveGoalEdit = useCallback(async () => {
+    try {
+      if (!editingGoalId) return;
+
+      const { error } = await supabase
+        .from('saving_goals')
+        .update({
+          title: editGoalForm.title,
+          target_amount: parseFloat(editGoalForm.target_amount),
+          deadline: editGoalForm.deadline
+        })
+        .eq('id', editingGoalId);
+
+      if (error) throw error;
+
+      await loadSavingGoals();
+      setEditingGoalId(null);
+      setEditGoalForm({});
+      
+      toast({
+        title: 'Başarılı',
+        description: 'Tasarruf hedefi güncellendi',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error updating goal:', error);
+      toast({
+        title: 'Hata',
+        description: 'Hedef güncellenirken hata oluştu',
+        variant: 'destructive'
+      });
+    }
+  }, [editingGoalId, editGoalForm, loadSavingGoals, toast]);
+
+  const handleCancelGoalEdit = useCallback(() => {
+    setEditingGoalId(null);
+    setEditGoalForm({});
+  }, []);
+
+  // Delete saving goal
+  const deleteGoal = useCallback(async (goalId: string) => {
+    try {
+      // Delete all contributions first
+      const { error: contribError } = await supabase
+        .from('saving_contributions')
+        .delete()
+        .eq('saving_goal_id', goalId);
+
+      if (contribError) throw contribError;
+
+      // Delete the goal
+      const { error } = await supabase
+        .from('saving_goals')
+        .delete()
+        .eq('id', goalId);
+
+      if (error) throw error;
+
+      await loadSavingGoals();
+      
+      toast({
+        title: 'Başarılı',
+        description: 'Tasarruf hedefi silindi',
+        variant: 'default'
+      });
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      toast({
+        title: 'Hata',
+        description: 'Hedef silinirken hata oluştu',
+        variant: 'destructive'
+      });
+    }
+  }, [loadSavingGoals, toast]);
+
+  // Category icons
+  const getSavingCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'home': case 'ev': return <Home className="w-4 h-4" />;
+      case 'car': case 'araba': return <Car className="w-4 h-4" />;
+      case 'vacation': case 'tatil': return <Gift className="w-4 h-4" />;
+      case 'education': case 'eğitim': return <Briefcase className="w-4 h-4" />;
+      default: return <Target className="w-4 h-4" />;
+    }
+  };
 
   // Hedef analizi
   const analyzeGoals = () => {
-    return savingGoals.map(goal => {
-      const progress = (goal.currentAmount / goal.targetAmount) * 100;
-      const remaining = goal.targetAmount - goal.currentAmount;
+    return savingGoalsData.map(goal => {
+      const progress = (goal.current_amount / goal.target_amount) * 100;
+      const remaining = goal.target_amount - goal.current_amount;
       const daysUntilDeadline = getDaysUntilDue(goal.deadline);
       const monthsUntilDeadline = Math.max(1, Math.ceil(daysUntilDeadline / 30));
       
@@ -205,58 +453,30 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
       </Card>
 
       {/* Tasarruf Hedefleri Detayı */}
-      {goalAnalysis.length > 0 && (
+      {savingGoalsData.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="w-5 h-5" />
-              Tasarruf Hedefleri ({goalAnalysis.length})
+              Tasarruf Hedefleri ({savingGoalsData.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {goalAnalysis.map((goal) => (
-              <div key={goal.id} className="space-y-3 p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{goal.title}</span>
-                  <Badge className={getStatusColor(goal.status)}>
-                    <div className="flex items-center gap-1">
-                      {getStatusIcon(goal.status)}
-                      {getStatusText(goal.status)}
-                    </div>
-                  </Badge>
-                </div>
-                
-                <Progress value={goal.progress} className="h-2" />
-                
-                <div className="grid grid-cols-2 gap-4 text-xs">
-                  <div>
-                    <p className="text-muted-foreground">Mevcut / Hedef</p>
-                    <p className="font-medium">
-                      {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Son Tarih</p>
-                    <p className="font-medium">{formatDate(goal.deadline)}</p>
-                  </div>
-                </div>
-                
-                {goal.status !== 'completed' && (
-                  <div className="grid grid-cols-2 gap-4 text-xs pt-2 border-t">
-                    <div>
-                      <p className="text-muted-foreground">Kalan Miktar</p>
-                      <p className="font-medium text-red-600">{formatCurrency(goal.remaining)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Aylık Gereken</p>
-                      <p className="font-medium">
-                        {formatCurrency(goal.requiredMonthlySavings)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          <CardContent>
+            <SavingGoalAccordion
+              savingGoals={savingGoalsData}
+              editingGoalId={editingGoalId}
+              editGoalForm={editGoalForm}
+              contributionForms={contributionForms}
+              getSavingCategoryIcon={getSavingCategoryIcon}
+              setEditGoalForm={setEditGoalForm}
+              setContributionForms={setContributionForms}
+              handleEditGoal={handleEditGoal}
+              handleSaveGoalEdit={handleSaveGoalEdit}
+              handleCancelGoalEdit={handleCancelGoalEdit}
+              addContribution={addContribution}
+              deleteGoal={deleteGoal}
+              deleteContribution={deleteContribution}
+            />
           </CardContent>
         </Card>
       )}
@@ -317,7 +537,7 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
       </Card>
 
       {/* Boş Durum */}
-      {goalAnalysis.length === 0 && debtAnalysis.length === 0 && (
+      {savingGoalsData.length === 0 && debtAnalysis.length === 0 && (
         <div className="text-center py-8">
           <Target className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground mb-2">Henüz takip edilen hedef yok</p>

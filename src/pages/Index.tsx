@@ -625,7 +625,6 @@ const BudgetApp = () => {
           
           <TabsContent value="goals" className="space-y-4">
             <GoalTracking
-              savingGoals={savingGoals}
               debts={debts}
               monthlyIncome={totalIncome}
               savingsPercentage={settings.savingsPercentage}
