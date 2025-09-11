@@ -161,8 +161,8 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
                 amount: Number(inserted.amount),
                 date: inserted.date,
                 description: inserted.description,
-                original_amount: inserted.original_amount ? Number(inserted.original_amount) : undefined,
-                original_currency: inserted.original_currency
+                original_amount: (inserted as any).original_amount ? Number((inserted as any).original_amount) : undefined,
+                original_currency: (inserted as any).original_currency
               } : c)
             }
           : g

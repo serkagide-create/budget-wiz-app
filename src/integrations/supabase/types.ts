@@ -283,6 +283,8 @@ export type Database = {
           date: string
           description: string | null
           id: string
+          original_amount: number | null
+          original_currency: string | null
           saving_goal_id: string
         }
         Insert: {
@@ -291,6 +293,8 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          original_amount?: number | null
+          original_currency?: string | null
           saving_goal_id: string
         }
         Update: {
@@ -299,6 +303,8 @@ export type Database = {
           date?: string
           description?: string | null
           id?: string
+          original_amount?: number | null
+          original_currency?: string | null
           saving_goal_id?: string
         }
         Relationships: []
