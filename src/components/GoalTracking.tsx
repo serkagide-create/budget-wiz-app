@@ -241,7 +241,7 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
 
       if (error) throw error;
 
-      await loadSavingGoals();
+      await syncGoalsWithContributions();
       setEditingGoalId(null);
       setEditGoalForm({});
       
@@ -258,7 +258,7 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
         variant: 'destructive'
       });
     }
-  }, [editingGoalId, editGoalForm, loadSavingGoals, toast]);
+  }, [editingGoalId, editGoalForm, syncGoalsWithContributions, toast]);
 
   const handleCancelGoalEdit = useCallback(() => {
     setEditingGoalId(null);
