@@ -370,19 +370,33 @@ const BudgetApp = () => {
 
   // Load all contributions for all goals
   const loadAllSavingContributions = async () => {
-    const contributions: Record<string, Array<{id: string; amount: number; date: string; description?: string}>> = {};
-    
-    for (const goal of savingGoals) {
-      const goalContributions = await loadSavingContributions(goal.id);
-      contributions[goal.id] = goalContributions.map((c: any) => ({
-        id: c.id,
-        amount: Number(c.amount),
-        date: c.date,
-        description: c.description
-      }));
+    if (savingGoals.length === 0) {
+      setSavingContributionsByGoal({});
+      return;
     }
-    
-    setSavingContributionsByGoal(contributions);
+
+    try {
+      const goalIds = savingGoals.map(g => g.id);
+      const { data, error } = await supabase
+        .from('saving_contributions')
+        .select('*')
+        .in('saving_goal_id', goalIds)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      const grouped: Record<string, Array<{id: string; amount: number; date: string; description?: string}>> = {};
+      (data || []).forEach((c: any) => {
+        const gid = c.saving_goal_id as string;
+        if (!grouped[gid]) grouped[gid] = [];
+        grouped[gid].push({ id: c.id, amount: Number(c.amount), date: c.date, description: c.description });
+      });
+
+      setSavingContributionsByGoal(grouped);
+    } catch (e) {
+      console.error('Error loading contributions:', e);
+      setSavingContributionsByGoal({});
+    }
   };
 
   // Load contributions when saving goals change
@@ -393,17 +407,25 @@ const BudgetApp = () => {
   }, [savingGoals]);
 
   const handleAddSavingAmount = async (goalId: string, amount: number) => {
-    try {
-      const goal = savingGoals.find(g => g.id === goalId);
-      if (!goal) return;
+    const nowIso = new Date().toISOString();
+    const tempId = `temp-${Date.now()}`;
 
-      // Add contribution to saving_contributions table
+    // Optimistic UI update
+    setSavingContributionsByGoal(prev => ({
+      ...prev,
+      [goalId]: [
+        { id: tempId, amount, date: nowIso, description: 'Tasarruf katkısı' },
+        ...(prev[goalId] || [])
+      ]
+    }));
+
+    try {
       const { data: contributionData, error: contributionError } = await supabase
         .from('saving_contributions')
         .insert({
           saving_goal_id: goalId,
           amount,
-          date: new Date().toISOString(),
+          date: nowIso,
           description: 'Tasarruf katkısı'
         })
         .select()
@@ -411,33 +433,43 @@ const BudgetApp = () => {
 
       if (contributionError) throw contributionError;
 
-      // Update saving goal current amount
-      const newCurrentAmount = goal.currentAmount + amount;
-      await updateSavingGoal(goalId, { currentAmount: newCurrentAmount });
+      const goal = savingGoals.find(g => g.id === goalId);
+      if (goal) {
+        await updateSavingGoal(goalId, { currentAmount: goal.currentAmount + amount });
+      }
 
-      // Update local contributions state
+      // Replace temp id with actual id
       setSavingContributionsByGoal(prev => ({
         ...prev,
-        [goalId]: [
-          {
-            id: contributionData.id,
-            amount: Number(contributionData.amount),
-            date: contributionData.date,
-            description: contributionData.description
-          },
-          ...(prev[goalId] || [])
-        ]
+        [goalId]: (prev[goalId] || []).map(c => c.id === tempId ? {
+          id: contributionData.id,
+          amount: Number(contributionData.amount),
+          date: contributionData.date,
+          description: contributionData.description
+        } : c)
       }));
 
       toast({ title: "Başarılı", description: `${formatCurrency(amount)} eklendi` });
     } catch (error) {
       console.error('Error adding contribution:', error);
+      // Rollback optimistic update
+      setSavingContributionsByGoal(prev => ({
+        ...prev,
+        [goalId]: (prev[goalId] || []).filter(c => c.id !== tempId)
+      }));
       toast({ title: "Hata", description: "Katkı eklenirken hata oluştu", variant: "destructive" });
     }
   };
 
   // Delete a saving contribution
   const deleteSavingContribution = async (contributionId: string, goalId: string, amount: number) => {
+    const prevState = savingContributionsByGoal;
+    // Optimistic UI update
+    setSavingContributionsByGoal(prev => ({
+      ...prev,
+      [goalId]: (prev[goalId] || []).filter(c => c.id !== contributionId)
+    }));
+
     try {
       const { error } = await supabase
         .from('saving_contributions')
@@ -448,20 +480,14 @@ const BudgetApp = () => {
 
       const goal = savingGoals.find(g => g.id === goalId);
       if (goal) {
-        // Update saving goal current amount
-        const newCurrentAmount = Math.max(0, goal.currentAmount - amount);
-        await updateSavingGoal(goalId, { currentAmount: newCurrentAmount });
-
-        // Update local contributions state
-        setSavingContributionsByGoal(prev => ({
-          ...prev,
-          [goalId]: (prev[goalId] || []).filter(c => c.id !== contributionId)
-        }));
+        await updateSavingGoal(goalId, { currentAmount: Math.max(0, goal.currentAmount - amount) });
       }
 
       toast({ title: "Başarılı", description: "Katkı silindi" });
     } catch (error) {
       console.error('Error deleting contribution:', error);
+      // Rollback
+      setSavingContributionsByGoal(prevState);
       toast({ title: "Hata", description: "Katkı silinirken hata oluştu", variant: "destructive" });
     }
   };

@@ -7,6 +7,7 @@ import { Trophy, Target, Calendar, TrendingUp, Clock, CheckCircle, Home, Car, Gi
 import { formatCurrency, formatDate, getDaysUntilDue } from '@/lib/utils';
 import { SavingGoalAccordion } from './SavingGoalAccordion';
 import { supabase } from '@/integrations/supabase/client';
+import { useFinancialData } from '@/hooks/useFinancialData';
 import { useToast } from '@/hooks/use-toast';
 import 'react-circular-progressbar/dist/styles.css';
 
@@ -48,147 +49,172 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
   const [editGoalForm, setEditGoalForm] = useState<any>({});
   const [contributionForms, setContributionForms] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { savingGoals, updateSavingGoal, deleteSavingGoal: removeSavingGoal } = useFinancialData();
   
   const monthlySavings = (monthlyIncome * savingsPercentage) / 100;
 
   // Load saving goals with contributions
-  const loadSavingGoals = useCallback(async () => {
+  const syncGoalsWithContributions = useCallback(async () => {
     try {
-      const { data: goals, error: goalsError } = await supabase
-        .from('saving_goals')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (goalsError) throw goalsError;
-
-      if (goals) {
-        // Load contributions for each goal
-        const goalsWithContributions = await Promise.all(
-          goals.map(async (goal) => {
-            const { data: contributions, error: contribError } = await supabase
-              .from('saving_contributions')
-              .select('*')
-              .eq('saving_goal_id', goal.id)
-              .order('date', { ascending: false });
-
-            if (contribError) console.error('Contributions error:', contribError);
-
-            return {
-              ...goal,
-              contributions: contributions || []
-            };
-          })
-        );
-
-        setSavingGoalsData(goalsWithContributions);
+      if (!savingGoals || savingGoals.length === 0) {
+        setSavingGoalsData([]);
+        return;
       }
-    } catch (error) {
-      console.error('Error loading saving goals:', error);
-      toast({
-        title: 'Hata',
-        description: 'Tasarruf hedefleri yüklenirken hata oluştu',
-        variant: 'destructive'
+      // Map hook goals to local shape first (without contributions)
+      const baseGoals = savingGoals.map(g => ({
+        id: g.id,
+        title: g.title,
+        target_amount: g.targetAmount,
+        current_amount: g.currentAmount,
+        deadline: g.deadline,
+        category: g.category,
+        contributions: [] as Array<{ id: string; amount: number; date: string; description?: string }>
+      }));
+      setSavingGoalsData(baseGoals);
+
+      const goalIds = savingGoals.map(g => g.id);
+      const { data, error } = await supabase
+        .from('saving_contributions')
+        .select('*')
+        .in('saving_goal_id', goalIds)
+        .order('date', { ascending: false });
+      if (error) throw error;
+
+      const grouped: Record<string, Array<{ id: string; amount: number; date: string; description?: string }>> = {};
+      (data || []).forEach((c: any) => {
+        const gid = c.saving_goal_id as string;
+        if (!grouped[gid]) grouped[gid] = [];
+        grouped[gid].push({ id: c.id, amount: Number(c.amount), date: c.date, description: c.description });
       });
+
+      setSavingGoalsData(prev => prev.map(g => ({ ...g, contributions: grouped[g.id] || [] })));
+    } catch (error) {
+      console.error('Error syncing saving goals:', error);
+      toast({ title: 'Hata', description: 'Tasarruf verileri yüklenirken hata oluştu', variant: 'destructive' });
     }
-  }, [toast]);
+  }, [savingGoals, toast]);
 
   useEffect(() => {
-    loadSavingGoals();
-  }, [loadSavingGoals]);
+    syncGoalsWithContributions();
+  }, [syncGoalsWithContributions]);
 
   // Add contribution to saving goal
   const addContribution = useCallback(async (goalId: string, amount: number) => {
+    const tempId = `temp-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+
+    // Optimistic UI update
+    setSavingGoalsData(prev => prev.map(g => 
+      g.id === goalId
+        ? {
+            ...g,
+            current_amount: g.current_amount + amount,
+            contributions: [
+              { id: tempId, amount, date: nowIso, description: 'Tasarruf katkısı' },
+              ...(g.contributions || [])
+            ]
+          }
+        : g
+    ));
+
     try {
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('saving_contributions')
         .insert({
           saving_goal_id: goalId,
           amount,
-          date: new Date().toISOString(),
+          date: nowIso,
           description: 'Tasarruf katkısı'
-        });
-
+        })
+        .select()
+        .single();
       if (error) throw error;
 
-      // Update saving goal current amount
-      const goal = savingGoalsData.find(g => g.id === goalId);
+      // Sync hook state for current amount
+      const goal = savingGoals.find(g => g.id === goalId);
       if (goal) {
-        const { error: updateError } = await supabase
-          .from('saving_goals')
-          .update({
-            current_amount: goal.current_amount + amount
-          })
-          .eq('id', goalId);
-
-        if (updateError) throw updateError;
+        await updateSavingGoal(goalId, { currentAmount: goal.currentAmount + amount });
       }
 
-      await loadSavingGoals();
-      
-      toast({
-        title: 'Başarılı',
-        description: `${formatCurrency(amount)} tasarrufa eklendi`,
-        variant: 'default'
-      });
+      // Replace temp with real id
+      setSavingGoalsData(prev => prev.map(g => 
+        g.id === goalId
+          ? {
+              ...g,
+              contributions: (g.contributions || []).map(c => c.id === tempId ? {
+                id: inserted.id,
+                amount: Number(inserted.amount),
+                date: inserted.date,
+                description: inserted.description
+              } : c)
+            }
+          : g
+      ));
+
+      toast({ title: 'Başarılı', description: `${formatCurrency(amount)} tasarrufa eklendi` });
     } catch (error) {
       console.error('Error adding contribution:', error);
-      toast({
-        title: 'Hata',
-        description: 'Katkı eklenirken hata oluştu',
-        variant: 'destructive'
-      });
+      // Rollback optimistic change
+      setSavingGoalsData(prev => prev.map(g => 
+        g.id === goalId
+          ? {
+              ...g,
+              current_amount: Math.max(0, g.current_amount - amount),
+              contributions: (g.contributions || []).filter(c => c.id !== tempId)
+            }
+          : g
+      ));
+      toast({ title: 'Hata', description: 'Katkı eklenirken hata oluştu', variant: 'destructive' });
     }
-  }, [savingGoalsData, loadSavingGoals, toast]);
+  }, [savingGoals, updateSavingGoal, toast]);
 
   // Delete contribution
   const deleteContribution = useCallback(async (contributionId: string) => {
+    // Find parent goal and amount locally to avoid extra fetch
+    const parentGoal = savingGoalsData.find(g => (g.contributions || []).some(c => c.id === contributionId));
+    const contribution = parentGoal?.contributions?.find(c => c.id === contributionId);
+    if (!parentGoal || !contribution) return;
+
+    // Optimistic UI update
+    setSavingGoalsData(prev => prev.map(g =>
+      g.id === parentGoal.id
+        ? {
+            ...g,
+            current_amount: Math.max(0, g.current_amount - contribution.amount),
+            contributions: (g.contributions || []).filter(c => c.id !== contributionId)
+          }
+        : g
+    ));
+
     try {
-      // Get contribution details first
-      const { data: contribution, error: getError } = await supabase
-        .from('saving_contributions')
-        .select('*, saving_goal_id')
-        .eq('id', contributionId)
-        .single();
-
-      if (getError) throw getError;
-
-      // Delete contribution
-      const { error: deleteError } = await supabase
+      const { error } = await supabase
         .from('saving_contributions')
         .delete()
         .eq('id', contributionId);
+      if (error) throw error;
 
-      if (deleteError) throw deleteError;
-
-      // Update saving goal current amount
-      const goal = savingGoalsData.find(g => g.id === contribution.saving_goal_id);
-      if (goal) {
-        const { error: updateError } = await supabase
-          .from('saving_goals')
-          .update({
-            current_amount: Math.max(0, goal.current_amount - contribution.amount)
-          })
-          .eq('id', contribution.saving_goal_id);
-
-        if (updateError) throw updateError;
+      // Sync hook state
+      const hookGoal = savingGoals.find(g => g.id === parentGoal.id);
+      if (hookGoal) {
+        await updateSavingGoal(parentGoal.id, { currentAmount: Math.max(0, hookGoal.currentAmount - contribution.amount) });
       }
 
-      await loadSavingGoals();
-      
-      toast({
-        title: 'Başarılı',
-        description: 'Katkı silindi',
-        variant: 'default'
-      });
+      toast({ title: 'Başarılı', description: 'Katkı silindi', variant: 'default' });
     } catch (error) {
       console.error('Error deleting contribution:', error);
-      toast({
-        title: 'Hata',
-        description: 'Katkı silinirken hata oluştu',
-        variant: 'destructive'
-      });
+      // Rollback optimistic change
+      setSavingGoalsData(prev => prev.map(g =>
+        g.id === parentGoal.id
+          ? {
+              ...g,
+              current_amount: g.current_amount + contribution.amount,
+              contributions: [{ ...contribution }, ...(g.contributions || [])]
+            }
+          : g
+      ));
+      toast({ title: 'Hata', description: 'Katkı silinirken hata oluştu', variant: 'destructive' });
     }
-  }, [savingGoalsData, loadSavingGoals, toast]);
+  }, [savingGoalsData, savingGoals, updateSavingGoal, toast]);
 
   // Edit saving goal
   const handleEditGoal = useCallback((goal: SavingGoal) => {
@@ -242,38 +268,14 @@ export const GoalTracking: React.FC<GoalTrackingProps> = ({
   // Delete saving goal
   const deleteGoal = useCallback(async (goalId: string) => {
     try {
-      // Delete all contributions first
-      const { error: contribError } = await supabase
-        .from('saving_contributions')
-        .delete()
-        .eq('saving_goal_id', goalId);
-
-      if (contribError) throw contribError;
-
-      // Delete the goal
-      const { error } = await supabase
-        .from('saving_goals')
-        .delete()
-        .eq('id', goalId);
-
-      if (error) throw error;
-
-      await loadSavingGoals();
-      
-      toast({
-        title: 'Başarılı',
-        description: 'Tasarruf hedefi silindi',
-        variant: 'default'
-      });
+      await removeSavingGoal(goalId);
+      setSavingGoalsData(prev => prev.filter(g => g.id !== goalId));
+      toast({ title: 'Başarılı', description: 'Tasarruf hedefi silindi', variant: 'default' });
     } catch (error) {
       console.error('Error deleting goal:', error);
-      toast({
-        title: 'Hata',
-        description: 'Hedef silinirken hata oluştu',
-        variant: 'destructive'
-      });
+      toast({ title: 'Hata', description: 'Hedef silinirken hata oluştu', variant: 'destructive' });
     }
-  }, [loadSavingGoals, toast]);
+  }, [removeSavingGoal, toast]);
 
   // Category icons
   const getSavingCategoryIcon = (category: string) => {
