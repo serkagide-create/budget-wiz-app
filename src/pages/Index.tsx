@@ -350,16 +350,119 @@ const BudgetApp = () => {
   };
 
 
+  // Load saving contributions for a goal
+  const loadSavingContributions = async (goalId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('saving_contributions')
+        .select('*')
+        .eq('saving_goal_id', goalId)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Error loading contributions:', error);
+      return [];
+    }
+  };
+
+  // Load all contributions for all goals
+  const loadAllSavingContributions = async () => {
+    const contributions: Record<string, Array<{id: string; amount: number; date: string; description?: string}>> = {};
+    
+    for (const goal of savingGoals) {
+      const goalContributions = await loadSavingContributions(goal.id);
+      contributions[goal.id] = goalContributions.map((c: any) => ({
+        id: c.id,
+        amount: Number(c.amount),
+        date: c.date,
+        description: c.description
+      }));
+    }
+    
+    setSavingContributionsByGoal(contributions);
+  };
+
+  // Load contributions when saving goals change
+  useEffect(() => {
+    if (savingGoals.length > 0) {
+      loadAllSavingContributions();
+    }
+  }, [savingGoals]);
+
   const handleAddSavingAmount = async (goalId: string, amount: number) => {
     try {
       const goal = savingGoals.find(g => g.id === goalId);
       if (!goal) return;
-      
+
+      // Add contribution to saving_contributions table
+      const { data: contributionData, error: contributionError } = await supabase
+        .from('saving_contributions')
+        .insert({
+          saving_goal_id: goalId,
+          amount,
+          date: new Date().toISOString(),
+          description: 'Tasarruf katkısı'
+        })
+        .select()
+        .single();
+
+      if (contributionError) throw contributionError;
+
+      // Update saving goal current amount
       const newCurrentAmount = goal.currentAmount + amount;
       await updateSavingGoal(goalId, { currentAmount: newCurrentAmount });
+
+      // Update local contributions state
+      setSavingContributionsByGoal(prev => ({
+        ...prev,
+        [goalId]: [
+          {
+            id: contributionData.id,
+            amount: Number(contributionData.amount),
+            date: contributionData.date,
+            description: contributionData.description
+          },
+          ...(prev[goalId] || [])
+        ]
+      }));
+
       toast({ title: "Başarılı", description: `${formatCurrency(amount)} eklendi` });
     } catch (error) {
-      toast({ title: "Hata", description: "Tutar eklenirken hata oluştu", variant: "destructive" });
+      console.error('Error adding contribution:', error);
+      toast({ title: "Hata", description: "Katkı eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+  // Delete a saving contribution
+  const deleteSavingContribution = async (contributionId: string, goalId: string, amount: number) => {
+    try {
+      const { error } = await supabase
+        .from('saving_contributions')
+        .delete()
+        .eq('id', contributionId);
+
+      if (error) throw error;
+
+      const goal = savingGoals.find(g => g.id === goalId);
+      if (goal) {
+        // Update saving goal current amount
+        const newCurrentAmount = Math.max(0, goal.currentAmount - amount);
+        await updateSavingGoal(goalId, { currentAmount: newCurrentAmount });
+
+        // Update local contributions state
+        setSavingContributionsByGoal(prev => ({
+          ...prev,
+          [goalId]: (prev[goalId] || []).filter(c => c.id !== contributionId)
+        }));
+      }
+
+      toast({ title: "Başarılı", description: "Katkı silindi" });
+    } catch (error) {
+      console.error('Error deleting contribution:', error);
+      toast({ title: "Hata", description: "Katkı silinirken hata oluştu", variant: "destructive" });
     }
   };
 
@@ -1051,89 +1154,224 @@ const BudgetApp = () => {
         </CardContent>
       </Card>
 
-      {/* Saving Goals List */}
+      {/* Saving Goals Accordion */}
       {savingGoals.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           Henüz birikim hedefi eklenmemiş
         </div>
       ) : (
-        <div className="space-y-4">
-          {savingGoals.map((goal) => {
+        <Accordion type="multiple" className="space-y-4">
+          {savingGoals.map((goal, index) => {
             const progress = (goal.currentAmount / goal.targetAmount) * 100;
+            const remaining = goal.targetAmount - goal.currentAmount;
             const isCompleted = progress >= 100;
+            const daysLeft = getDaysUntilDue(goal.deadline);
+            
+            let isWarning = false;
+            let warningText = '';
+            
+            if (!isCompleted) {
+              if (daysLeft < 0) {
+                isWarning = true;
+                warningText = `${Math.abs(daysLeft)} gün gecikmiş!`;
+              } else if (daysLeft === 0) {
+                isWarning = true;
+                warningText = 'Son gün!';
+              } else if (daysLeft <= 30) {
+                isWarning = true;
+                warningText = `${daysLeft} gün kaldı!`;
+              }
+            }
+
+            const contributions = savingContributionsByGoal[goal.id] || [];
             
             return (
-              <Card key={goal.id} className="border border-savings/20">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">
-                          {getCategoryEmoji(goal.category)}
+              <AccordionItem key={goal.id} value={goal.id} className={`
+                border-2 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300
+                ${isWarning 
+                  ? 'border-warning border-warning/80 bg-gradient-to-br from-warning/15 to-warning/5 shadow-warning/30' 
+                  : index % 2 === 0 
+                    ? 'border-savings border-savings/40 bg-gradient-to-br from-card to-muted/30 shadow-savings/10' 
+                    : 'border-secondary border-secondary/40 bg-gradient-to-br from-muted/50 to-card shadow-secondary/10'
+                } 
+                overflow-hidden mb-4 backdrop-blur-sm
+              `}>
+                <AccordionTrigger className="hover:no-underline p-0">
+                  <div className="w-full">
+                    {/* Header with goal name */}
+                    <div className="bg-muted/30 px-4 py-2 border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`text-xs px-2 py-1 rounded-full ${
+                            index === 0 ? 'bg-savings text-savings-foreground' : 
+                            index === 1 ? 'bg-secondary text-secondary-foreground' :
+                            'bg-muted text-muted-foreground'
+                          }`}>
+                            {index === 0 ? '🎯 #1' : `#${index + 1}`}
+                          </div>
+                          <div className="text-2xl">
+                            {getCategoryEmoji(goal.category)}
+                          </div>
+                          <h3 className="font-semibold text-foreground">{goal.title}</h3>
                         </div>
-                        <div>
-                          <h3 className="font-medium">{goal.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Son tarih: {formatDate(goal.deadline)}
-                          </p>
-                        </div>
+                        {isWarning && (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            {warningText}
+                          </Badge>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-savings">
-                          {formatCurrency(goal.currentAmount)}
+                    </div>
+                    
+                    {/* Content with progress and action */}
+                    <div className="px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Kalan:</span>
+                              <span className="font-bold text-warning ml-1">
+                                {formatCurrency(goal.targetAmount - goal.currentAmount)}
+                              </span>
+                            </div>
+                            <div className="flex-1 max-w-32">
+                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                <span>{progress.toFixed(0)}%</span>
+                              </div>
+                              <Progress value={Math.min(progress, 100)} className="h-1.5" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          / {formatCurrency(goal.targetAmount)}
-                          {goal.currency && goal.currency !== 'TRY' && goal.originalAmount && (
-                            <div className="text-xs">
-                              {formatAmount(goal.originalAmount, goal.currency)}
+                        
+                        <div className="ml-4">
+                          {isCompleted ? (
+                            <Badge className="bg-income text-income-foreground">
+                              ✅ Tamamlandı
+                            </Badge>
+                          ) : (
+                            <div 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const defaultAmount = Math.min(500, Math.ceil(goal.targetAmount * 0.05));
+                                handleAddSavingAmount(goal.id, defaultAmount);
+                              }} 
+                              className="px-3 py-1.5 text-sm font-medium rounded-md bg-savings text-savings-foreground hover:bg-savings/90 cursor-pointer transition-colors"
+                            >
+                              + Ekle
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
-                    
+                  </div>
+                </AccordionTrigger>
+                
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>İlerleme ({progress.toFixed(0)}%)</span>
                         <span>
-                          {isCompleted ? '✅ Tamamlandı!' : `${formatCurrency(goal.targetAmount - goal.currentAmount)} kaldı`}
+                          {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+                          {goal.currency && goal.currency !== 'TRY' && goal.originalAmount && (
+                            <div className="text-xs text-muted-foreground">
+                              {formatAmount(goal.originalAmount, goal.currency)}
+                            </div>
+                          )}
                         </span>
                       </div>
                       <Progress value={Math.min(progress, 100)} className="h-2" />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Hedef Tarih</p>
+                        <p className="font-medium">{formatDate(goal.deadline)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Kategori</p>
+                        <p className="font-medium capitalize">{goal.category}</p>
+                      </div>
+                    </div>
+
                     {!isCompleted && (
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Eklenecek tutar"
-                          className="flex-1"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              const amount = parseFloat((e.target as HTMLInputElement).value);
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Katkı miktarı girin"
+                            type="number"
+                            value={savingContributionForms[goal.id] || ''}
+                            onChange={(e) => setSavingContributionForms(prev => ({ ...prev, [goal.id]: e.target.value }))}
+                            className="flex-1"
+                          />
+                          <Button 
+                            onClick={() => {
+                              const amount = parseFloat(savingContributionForms[goal.id] || '0');
                               if (amount > 0) {
                                 handleAddSavingAmount(goal.id, amount);
-                                (e.target as HTMLInputElement).value = '';
+                                setSavingContributionForms(prev => ({ ...prev, [goal.id]: '' }));
                               }
-                            }
-                          }}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteSavingGoal(goal.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                            }} 
+                            size="sm"
+                            disabled={!savingContributionForms[goal.id] || parseFloat(savingContributionForms[goal.id] || '0') <= 0}
+                            className="bg-savings text-savings-foreground hover:bg-savings/90"
+                          >
+                            <Target className="w-3 h-3 mr-1" />
+                            Ekle
+                          </Button>
+                        </div>
                       </div>
                     )}
+
+                    {contributions.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">
+                          Katkı Geçmişi ({contributions.length} katkı)
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {contributions.map((contribution) => (
+                            <div key={contribution.id} className="flex justify-between items-center text-xs bg-savings/10 p-2 rounded">
+                              <div className="flex items-center gap-2">
+                                <Target className="w-3 h-3 text-savings" />
+                                <span className="font-medium">{formatCurrency(contribution.amount)}</span>
+                                <span className="text-muted-foreground">
+                                  {new Date(contribution.date).toLocaleDateString('tr-TR')}
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSavingContribution(contribution.id, goal.id, contribution.amount);
+                                }}
+                                className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteSavingGoal(goal.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Hedefi Sil
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </AccordionContent>
+              </AccordionItem>
             );
           })}
-        </div>
+        </Accordion>
       )}
     </div>
   );
