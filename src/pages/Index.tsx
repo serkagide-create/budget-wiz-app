@@ -1511,66 +1511,86 @@ const BudgetApp = () => {
           </Card>
         ) : (
           <div className="space-y-3">
-            <h3 className="font-medium text-lg">Kategorilere Göre Giderler</h3>
-            <Accordion type="multiple" className="space-y-2">
+            <h3 className="font-medium text-lg">Gider Kategorilerim</h3>
+            <div className="space-y-3">
               {categoriesWithExpenses.map(([categoryKey, categoryData]) => {
                 const totalAmount = categoryData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
                 
                 return (
-                  <AccordionItem key={categoryKey} value={categoryKey} className="border border-orange-500/20 rounded-lg">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{categoryData.name}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {categoryData.expenses.length} gider
-                          </Badge>
-                        </div>
-                        <div className="text-right mr-4">
-                          <div className="font-bold text-orange-600 dark:text-orange-400">
-                            -{formatCurrency(totalAmount)}
+                  <Card key={categoryKey} className="border-2 border-orange-500/30 hover:border-orange-500/50 transition-colors">
+                    <Accordion type="multiple" className="w-full">
+                      <AccordionItem value={categoryKey} className="border-none">
+                        <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-4">
+                              <div className="text-2xl">{categoryData.name.split(' ')[0]}</div>
+                              <div>
+                                <h3 className="font-semibold text-lg text-left">{categoryData.name.substring(2)}</h3>
+                                <p className="text-sm text-muted-foreground text-left">
+                                  {categoryData.expenses.length} adet gider
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right mr-4">
+                              <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                                -{formatCurrency(totalAmount)}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Toplam harcama
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4 pb-4">
-                      <div className="space-y-2">
-                        {categoryData.expenses
-                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                          .map((expense) => (
-                            <Card key={expense.id} className="border border-orange-500/10">
-                              <CardContent className="p-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <h4 className="font-medium text-sm">{expense.description}</h4>
-                                    <p className="text-xs text-muted-foreground">
-                                      {formatDate(expense.date)}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-right">
-                                      <div className="font-bold text-orange-600 dark:text-orange-400 text-sm">
-                                        -{formatCurrency(expense.amount)}
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 pb-4">
+                          <div className="space-y-3 border-t border-orange-500/20 pt-4">
+                            <h4 className="font-medium text-muted-foreground text-sm">GİDER DETAYLARI:</h4>
+                            {categoryData.expenses
+                              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                              .map((expense, index) => (
+                                <div key={expense.id} className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-lg p-4 border border-orange-200/50 dark:border-orange-800/30">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Badge variant="outline" className="text-xs">
+                                          #{index + 1}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">
+                                          {formatDate(expense.date)}
+                                        </span>
                                       </div>
+                                      <h5 className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                                        {expense.description}
+                                      </h5>
+                                      <p className="text-sm text-muted-foreground">
+                                        Bu kategoride yapılan harcama
+                                      </p>
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => deleteExpense(expense.id)}
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
+                                    <div className="flex items-center gap-3 ml-4">
+                                      <div className="text-right">
+                                        <div className="text-lg font-bold text-orange-700 dark:text-orange-400">
+                                          -{formatCurrency(expense.amount)}
+                                        </div>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => deleteExpense(expense.id)}
+                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
-                              </CardContent>
-                            </Card>
-                          ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                              ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </Card>
                 );
               })}
-            </Accordion>
+            </div>
           </div>
         )}
       </div>
