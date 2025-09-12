@@ -893,50 +893,116 @@ const BudgetApp = () => {
         </CardContent>
       </Card>
 
-      {/* Income List */}
+      {/* Income List Grouped by Category */}
       {incomes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           Henüz gelir eklenmemiş
         </div>
       ) : (
-        <div className="space-y-2">
-          {incomes.map((income) => (
-            <Card key={income.id} className="border border-income/20">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">{income.description}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(income.date)} • {income.category} 
-                      {income.currency && income.currency !== 'TRY' && (
-                        <>• {income.currency}</>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                      <span className="font-bold text-income block">
-                        {formatCurrency(income.amount)}
-                      </span>
-                      {income.currency && income.currency !== 'TRY' && income.originalAmount && (
-                        <span className="text-xs text-muted-foreground">
-                          {formatAmount(income.originalAmount, income.currency)}
-                        </span>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteIncome(income.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Accordion type="multiple" className="space-y-4">
+          {(() => {
+            const incomeCategories = {
+              salary: { name: '💼 Maaş', incomes: [] as any[] },
+              freelance: { name: '💻 Serbest İş', incomes: [] as any[] },
+              rental: { name: '🏠 Kira Geliri', incomes: [] as any[] },
+              investment: { name: '📈 Yatırım', incomes: [] as any[] },
+              gold: { name: '🟡 Altın', incomes: [] as any[] },
+              other: { name: '📋 Diğer', incomes: [] as any[] }
+            };
+
+            // Group incomes by category
+            incomes.forEach(income => {
+              if (incomeCategories[income.category as keyof typeof incomeCategories]) {
+                incomeCategories[income.category as keyof typeof incomeCategories].incomes.push(income);
+              } else {
+                incomeCategories.other.incomes.push(income);
+              }
+            });
+
+            // Filter out empty categories and render
+            return Object.entries(incomeCategories)
+              .filter(([_, data]) => data.incomes.length > 0)
+              .map(([category, categoryData]) => {
+                const totalAmount = categoryData.incomes.reduce((sum, income) => sum + income.amount, 0);
+                
+                return (
+                  <AccordionItem 
+                    key={category} 
+                    value={category}
+                    className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/20 border border-emerald-200/50 dark:border-emerald-800/30 rounded-xl overflow-hidden"
+                  >
+                    <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">{categoryData.name.split(' ')[0]}</div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-emerald-800 dark:text-emerald-200 text-left">
+                              {categoryData.name.split(' ').slice(1).join(' ')}
+                            </h3>
+                            <p className="text-sm text-emerald-600 dark:text-emerald-400 text-left">
+                              {categoryData.incomes.length} gelir kalemi
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right mr-4">
+                          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+                            +{formatCurrency(totalAmount)}
+                          </div>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-3">
+                      <div className="space-y-2 border-t border-emerald-500/20 pt-3">
+                        {categoryData.incomes
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((income, index) => (
+                            <div key={income.id} className="bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-900/20 rounded-lg p-3 border border-emerald-200/50 dark:border-emerald-800/30">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatDate(income.date)}
+                                    </span>
+                                    {income.currency && income.currency !== 'TRY' && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {income.currency}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <h5 className="font-medium text-gray-800 dark:text-gray-200">
+                                    {income.description}
+                                  </h5>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                  <div className="text-right">
+                                    <div className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
+                                      +{formatCurrency(income.amount)}
+                                    </div>
+                                    {income.currency && income.currency !== 'TRY' && income.originalAmount && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {formatAmount(income.originalAmount, income.currency)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteIncome(income.id)}
+                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              });
+          })()}
+        </Accordion>
       )}
     </div>
   );
