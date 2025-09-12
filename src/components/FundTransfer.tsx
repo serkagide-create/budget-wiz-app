@@ -172,7 +172,7 @@ const FundTransfer: React.FC<FundTransferProps> = ({
                   <SelectItem value="balance">
                     <div className="flex items-center gap-2 max-w-full">
                       <Wallet className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Harcanabilir ({formatCurrency(settings.balance || 0)})</span>
+                      <span className="truncate">Harcanabilir ({formatCurrency(availableLivingExpensesFund)})</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="debt_fund">
