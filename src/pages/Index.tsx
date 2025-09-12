@@ -1483,7 +1483,7 @@ const BudgetApp = () => {
                 />
                 <div className="relative">
                   <Select
-                    value={expenseForm.category}
+                    value={expenseForm.category === '' ? 'custom' : expenseForm.category}
                     onValueChange={(value) => {
                       if (value === 'custom') {
                         setExpenseForm(prev => ({ ...prev, category: '' }));
@@ -1507,16 +1507,19 @@ const BudgetApp = () => {
                       <SelectItem value="clothing">👕 Giyim</SelectItem>
                       <SelectItem value="other">📋 Diğer</SelectItem>
                       <SelectItem value="custom">➕ Özel Kategori Ekle</SelectItem>
+                      {expenseForm.category === '' && (
+                        <div className="px-2 py-2">
+                          <Input
+                            placeholder="Kategori adı girin"
+                            value={expenseForm.category}
+                            onChange={(e) => setExpenseForm(prev => ({ ...prev, category: e.target.value }))}
+                            className="w-full"
+                            autoFocus
+                          />
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
-                  {!['food', 'transport', 'shopping', 'utilities', 'health', 'entertainment', 'education', 'children', 'clothing', 'other'].includes(expenseForm.category) && (
-                    <Input
-                      placeholder="Kategori adı girin"
-                      value={expenseForm.category}
-                      onChange={(e) => setExpenseForm(prev => ({ ...prev, category: e.target.value }))}
-                      className="mt-2"
-                    />
-                  )}
                 </div>
                 <Input
                   type="date"
