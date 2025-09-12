@@ -1402,139 +1402,180 @@ const BudgetApp = () => {
     </div>
   );
 
-  const renderExpenses = () => (
-    <div className="space-y-4">
-      {/* Available Living Expenses Fund */}
-      <Card className="bg-gradient-to-b from-orange-500/20 to-orange-500/5 border border-orange-500/20">
-        <CardContent className="p-4 text-center">
-          <p className="text-sm text-orange-700 dark:text-orange-300/80">Kullanılabilir Yaşam Masrafları Fonu</p>
-          <p className="text-2xl font-bold text-orange-800 dark:text-orange-300">
-            {formatCurrency(availableLivingExpensesFund)}
-          </p>
-          <p className="text-xs text-orange-600 dark:text-orange-400/80 mt-1">
-            %{settings.livingExpensesPercentage} - Toplam: {formatCurrency(livingExpensesFund)}
-          </p>
-        </CardContent>
-      </Card>
+  const renderExpenses = () => {
+    // Group expenses by category
+    const expenseCategories = {
+      food: { name: '🍽️ Yemek', expenses: [] as any[] },
+      transport: { name: '🚗 Ulaşım', expenses: [] as any[] },
+      shopping: { name: '🛒 Alışveriş', expenses: [] as any[] },
+      utilities: { name: '⚡ Faturalar', expenses: [] as any[] },
+      health: { name: '🏥 Sağlık', expenses: [] as any[] },
+      entertainment: { name: '🎬 Eğlence', expenses: [] as any[] },
+      education: { name: '📚 Eğitim', expenses: [] as any[] },
+      children: { name: '👶 Çocuk Masrafları', expenses: [] as any[] },
+      clothing: { name: '👕 Giyim', expenses: [] as any[] },
+      other: { name: '📋 Diğer', expenses: [] as any[] }
+    };
 
-      {/* Add Expense Form */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <Input
-              placeholder="Gider açıklaması"
-              value={expenseForm.description}
-              onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
-            />
-            <div className="grid grid-cols-3 gap-2">
-              <Input
-                type="number"
-                placeholder="Tutar"
-                value={expenseForm.amount}
-                onChange={(e) => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
-              />
-              <Select
-                value={expenseForm.category}
-                onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="food">🍽️ Yemek</SelectItem>
-                  <SelectItem value="transport">🚗 Ulaşım</SelectItem>
-                  <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
-                  <SelectItem value="utilities">⚡ Faturalar</SelectItem>
-                  <SelectItem value="health">🏥 Sağlık</SelectItem>
-                  <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
-                  <SelectItem value="education">📚 Eğitim</SelectItem>
-                  <SelectItem value="children">👶 Çocuk Masrafları</SelectItem>
-                  <SelectItem value="clothing">👕 Giyim</SelectItem>
-                  <SelectItem value="other">📋 Diğer</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                value={expenseForm.date}
-                onChange={(e) => setExpenseForm(prev => ({ ...prev, date: e.target.value }))}
-              />
-            </div>
-            <Button onClick={handleAddExpense} className="w-full">
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Gider Ekle
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    // Group expenses into categories
+    expenses.forEach(expense => {
+      const category = expense.category || 'other';
+      if (expenseCategories[category as keyof typeof expenseCategories]) {
+        expenseCategories[category as keyof typeof expenseCategories].expenses.push(expense);
+      } else {
+        expenseCategories.other.expenses.push(expense);
+      }
+    });
 
-      {/* Expenses List */}
-      {expenses.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Receipt className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground">Henüz gider eklenmedi</p>
+    // Filter out categories with no expenses
+    const categoriesWithExpenses = Object.entries(expenseCategories)
+      .filter(([_, data]) => data.expenses.length > 0)
+      .sort(([_, a], [__, b]) => {
+        const totalA = a.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const totalB = b.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+        return totalB - totalA; // Sort by total amount descending
+      });
+
+    return (
+      <div className="space-y-4">
+        {/* Available Living Expenses Fund */}
+        <Card className="bg-gradient-to-b from-orange-500/20 to-orange-500/5 border border-orange-500/20">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-orange-700 dark:text-orange-300/80">Kullanılabilir Yaşam Masrafları Fonu</p>
+            <p className="text-2xl font-bold text-orange-800 dark:text-orange-300">
+              {formatCurrency(availableLivingExpensesFund)}
+            </p>
+            <p className="text-xs text-orange-600 dark:text-orange-400/80 mt-1">
+              %{settings.livingExpensesPercentage} - Toplam: {formatCurrency(livingExpensesFund)}
+            </p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-3">
-          <h3 className="font-medium text-lg">Giderlerim</h3>
-          {expenses
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .map((expense) => {
-              const getCategoryIcon = (category: string) => {
-                const icons = {
-                  food: '🍽️',
-                  transport: '🚗',
-                  shopping: '🛒',
-                  utilities: '⚡',
-                  health: '🏥',
-                  entertainment: '🎬',
-                  education: '📚',
-                  children: '👶',
-                  clothing: '👕',
-                  other: '📋'
-                };
-                return icons[category as keyof typeof icons] || icons.other;
-              };
 
-              return (
-                <Card key={expense.id} className="border border-orange-500/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">
-                          {getCategoryIcon(expense.category)}
+        {/* Add Expense Form */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <Input
+                placeholder="Gider açıklaması"
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm(prev => ({ ...prev, description: e.target.value }))}
+              />
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  type="number"
+                  placeholder="Tutar"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
+                />
+                <Select
+                  value={expenseForm.category}
+                  onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kategori" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="food">🍽️ Yemek</SelectItem>
+                    <SelectItem value="transport">🚗 Ulaşım</SelectItem>
+                    <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
+                    <SelectItem value="utilities">⚡ Faturalar</SelectItem>
+                    <SelectItem value="health">🏥 Sağlık</SelectItem>
+                    <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
+                    <SelectItem value="education">📚 Eğitim</SelectItem>
+                    <SelectItem value="children">👶 Çocuk Masrafları</SelectItem>
+                    <SelectItem value="clothing">👕 Giyim</SelectItem>
+                    <SelectItem value="other">📋 Diğer</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="date"
+                  value={expenseForm.date}
+                  onChange={(e) => setExpenseForm(prev => ({ ...prev, date: e.target.value }))}
+                />
+              </div>
+              <Button onClick={handleAddExpense} className="w-full">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Gider Ekle
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Expenses by Category */}
+        {expenses.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Receipt className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">Henüz gider eklenmedi</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="font-medium text-lg">Kategorilere Göre Giderler</h3>
+            <Accordion type="multiple" className="space-y-2">
+              {categoriesWithExpenses.map(([categoryKey, categoryData]) => {
+                const totalAmount = categoryData.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                
+                return (
+                  <AccordionItem key={categoryKey} value={categoryKey} className="border border-orange-500/20 rounded-lg">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{categoryData.name}</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {categoryData.expenses.length} gider
+                          </Badge>
                         </div>
-                        <div>
-                          <h3 className="font-medium">{expense.description}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(expense.date)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-right">
+                        <div className="text-right mr-4">
                           <div className="font-bold text-orange-600 dark:text-orange-400">
-                            -{formatCurrency(expense.amount)}
+                            -{formatCurrency(totalAmount)}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteExpense(expense.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-        </div>
-      )}
-    </div>
-  );
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-2">
+                        {categoryData.expenses
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((expense) => (
+                            <Card key={expense.id} className="border border-orange-500/10">
+                              <CardContent className="p-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-medium text-sm">{expense.description}</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      {formatDate(expense.date)}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-right">
+                                      <div className="font-bold text-orange-600 dark:text-orange-400 text-sm">
+                                        -{formatCurrency(expense.amount)}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deleteExpense(expense.id)}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 
   const renderSettings = () => (
