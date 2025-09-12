@@ -1403,8 +1403,11 @@ const BudgetApp = () => {
   );
 
   const renderExpenses = () => {
-    // Group expenses by category
-    const expenseCategories = {
+    // Get all unique categories from expenses
+    const allCategories = Array.from(new Set(expenses.map(e => e.category || 'other')));
+    
+    // Pre-defined category mappings
+    const predefinedCategories = {
       food: { name: '🍽️ Yemek', expenses: [] as any[] },
       transport: { name: '🚗 Ulaşım', expenses: [] as any[] },
       shopping: { name: '🛒 Alışveriş', expenses: [] as any[] },
@@ -1417,13 +1420,24 @@ const BudgetApp = () => {
       other: { name: '📋 Diğer', expenses: [] as any[] }
     };
 
+    // Create expense categories object including custom ones
+    const expenseCategories = { ...predefinedCategories };
+    
+    // Add custom categories
+    allCategories.forEach(category => {
+      if (!expenseCategories[category as keyof typeof expenseCategories]) {
+        expenseCategories[category as keyof typeof expenseCategories] = {
+          name: `📂 ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+          expenses: []
+        };
+      }
+    });
+
     // Group expenses into categories
     expenses.forEach(expense => {
       const category = expense.category || 'other';
       if (expenseCategories[category as keyof typeof expenseCategories]) {
         expenseCategories[category as keyof typeof expenseCategories].expenses.push(expense);
-      } else {
-        expenseCategories.other.expenses.push(expense);
       }
     });
 
@@ -1467,26 +1481,43 @@ const BudgetApp = () => {
                   value={expenseForm.amount}
                   onChange={(e) => setExpenseForm(prev => ({ ...prev, amount: e.target.value }))}
                 />
-                <Select
-                  value={expenseForm.category}
-                  onValueChange={(value) => setExpenseForm(prev => ({ ...prev, category: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kategori" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="food">🍽️ Yemek</SelectItem>
-                    <SelectItem value="transport">🚗 Ulaşım</SelectItem>
-                    <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
-                    <SelectItem value="utilities">⚡ Faturalar</SelectItem>
-                    <SelectItem value="health">🏥 Sağlık</SelectItem>
-                    <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
-                    <SelectItem value="education">📚 Eğitim</SelectItem>
-                    <SelectItem value="children">👶 Çocuk Masrafları</SelectItem>
-                    <SelectItem value="clothing">👕 Giyim</SelectItem>
-                    <SelectItem value="other">📋 Diğer</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Select
+                    value={expenseForm.category}
+                    onValueChange={(value) => {
+                      if (value === 'custom') {
+                        setExpenseForm(prev => ({ ...prev, category: '' }));
+                      } else {
+                        setExpenseForm(prev => ({ ...prev, category: value }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="food">🍽️ Yemek</SelectItem>
+                      <SelectItem value="transport">🚗 Ulaşım</SelectItem>
+                      <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
+                      <SelectItem value="utilities">⚡ Faturalar</SelectItem>
+                      <SelectItem value="health">🏥 Sağlık</SelectItem>
+                      <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
+                      <SelectItem value="education">📚 Eğitim</SelectItem>
+                      <SelectItem value="children">👶 Çocuk Masrafları</SelectItem>
+                      <SelectItem value="clothing">👕 Giyim</SelectItem>
+                      <SelectItem value="other">📋 Diğer</SelectItem>
+                      <SelectItem value="custom">➕ Özel Kategori Ekle</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!['food', 'transport', 'shopping', 'utilities', 'health', 'entertainment', 'education', 'children', 'clothing', 'other'].includes(expenseForm.category) && (
+                    <Input
+                      placeholder="Kategori adı girin"
+                      value={expenseForm.category}
+                      onChange={(e) => setExpenseForm(prev => ({ ...prev, category: e.target.value }))}
+                      className="mt-2"
+                    />
+                  )}
+                </div>
                 <Input
                   type="date"
                   value={expenseForm.date}
