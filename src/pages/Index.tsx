@@ -1575,31 +1575,24 @@ const BudgetApp = () => {
                             </div>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="px-6 pb-4">
-                          <div className="space-y-3 border-t border-orange-500/20 pt-4">
-                            <h4 className="font-medium text-muted-foreground text-sm">GİDER DETAYLARI:</h4>
+                        <AccordionContent className="px-6 pb-3">
+                          <div className="space-y-2 border-t border-orange-500/20 pt-3">
                             {categoryData.expenses
                               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                               .map((expense, index) => (
-                                <div key={expense.id} className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-lg p-4 border border-orange-200/50 dark:border-orange-800/30">
-                                  <div className="flex items-start justify-between">
+                                <div key={expense.id} className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 rounded-lg p-3 border border-orange-200/50 dark:border-orange-800/30">
+                                  <div className="flex items-center justify-between">
                                     <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Badge variant="outline" className="text-xs">
-                                          #{index + 1}
-                                        </Badge>
+                                      <div className="flex items-center gap-2 mb-1">
                                         <span className="text-xs text-muted-foreground">
                                           {formatDate(expense.date)}
                                         </span>
                                       </div>
-                                      <h5 className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                                      <h5 className="font-medium text-gray-800 dark:text-gray-200">
                                         {expense.description}
                                       </h5>
-                                      <p className="text-sm text-muted-foreground">
-                                        Bu kategoride yapılan harcama
-                                      </p>
                                     </div>
-                                    <div className="flex items-center gap-3 ml-4">
+                                    <div className="flex items-center gap-2 ml-4">
                                       <div className="text-right">
                                         <div className="text-lg font-bold text-orange-700 dark:text-orange-400">
                                           -{formatCurrency(expense.amount)}
@@ -1609,9 +1602,9 @@ const BudgetApp = () => {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => deleteExpense(expense.id)}
-                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                        className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                                       >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </Button>
                                     </div>
                                   </div>
