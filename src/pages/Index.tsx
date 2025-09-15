@@ -594,7 +594,7 @@ const BudgetApp = () => {
 
   const availableDebtFund = Math.max(0, debtFund + netForFund('debt_fund') - usedDebtFund);
   const availableSavingsFund = Math.max(0, savingsFund + netForFund('savings_fund') - usedSavingsFund);
-  const availableLivingExpensesFund = Math.max(0, livingExpensesFund + netForFund('balance') - totalExpenses);
+  const availableLivingExpensesFund = livingExpensesFund + netForFund('balance') - totalExpenses;
 
   // Debt Strategy Logic
   const getSortedDebts = () => {
