@@ -2006,13 +2006,23 @@ const BudgetApp = () => {
                 <p className="text-xs text-muted-foreground">Finansal Özgürlük</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab('settings')}
+                className={activeTab === 'settings' ? 'text-primary' : ''}
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -2116,15 +2126,6 @@ const BudgetApp = () => {
             >
               <BarChart3 className="w-5 h-5" />
               <span className="text-xs">Raporlar</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex flex-col items-center justify-center gap-1 ${
-                activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-xs">Ayarlar</span>
             </button>
           </div>
         </div>
