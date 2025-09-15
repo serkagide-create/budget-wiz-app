@@ -205,9 +205,9 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
   const incomeCategories = getIncomeCategories();
   const expenseCategories = getExpenseCategories();
   
-  const selectedIncomeCategoryData = selectedIncomeCategory ? 
+  const selectedIncomeCategoryData = selectedIncomeCategory && selectedIncomeCategory !== 'all' ? 
     getCategoryData(selectedMonth, 'income', selectedIncomeCategory) : null;
-  const selectedExpenseCategoryData = selectedExpenseCategory ? 
+  const selectedExpenseCategoryData = selectedExpenseCategory && selectedExpenseCategory !== 'all' ? 
     getCategoryData(selectedMonth, 'expense', selectedExpenseCategory) : null;
 
   return (
@@ -341,12 +341,12 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Select value={selectedIncomeCategory} onValueChange={setSelectedIncomeCategory}>
+                  <Select value={selectedIncomeCategory} onValueChange={(value) => setSelectedIncomeCategory(value === 'all' ? '' : value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Kategori seçin" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Hepsini Temizle</SelectItem>
+                      <SelectItem value="all">Hepsini Temizle</SelectItem>
                       {incomeCategories.map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
@@ -365,12 +365,12 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Select value={selectedExpenseCategory} onValueChange={setSelectedExpenseCategory}>
+                  <Select value={selectedExpenseCategory} onValueChange={(value) => setSelectedExpenseCategory(value === 'all' ? '' : value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Kategori seçin" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Hepsini Temizle</SelectItem>
+                      <SelectItem value="all">Hepsini Temizle</SelectItem>
                       {expenseCategories.map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
