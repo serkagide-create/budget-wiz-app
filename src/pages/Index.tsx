@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { DebtAccordion } from '@/components/DebtAccordion';
 import FundTransfer from '@/components/FundTransfer';
+import { Reports } from '@/components/Reports';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -152,32 +153,8 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'expenses' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'expenses' | 'reports' | 'settings'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
-
-  // Month selector state
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
-
-  // Generate available months (based on actual data dates)
-  const getAvailableMonths = () => {
-    const months = [];
-    const now = new Date();
-    
-    // Get last 24 months to cover more historical data
-    for (let i = 0; i < 24; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
-      months.push({ value: monthKey, label: monthName });
-    }
-    
-    return months;
-  };
-
-  const availableMonths = getAvailableMonths();
 
   // AI Assistant State
   const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'assistant', message: string, timestamp: Date}>>([]);
@@ -928,61 +905,39 @@ const BudgetApp = () => {
 
       {/* Monthly and Total Income Summary */}
       {incomes.length > 0 && (
-        <div className="space-y-4 mb-6">
-          {/* Month Selector */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Ay Seçin:</label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableMonths.map(month => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Card className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40 border border-emerald-200/50 dark:border-emerald-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400/80">Bu Ay Toplam</p>
+              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                +{formatCurrency((() => {
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  return incomes
+                    .filter(income => {
+                      const incomeDate = new Date(income.date);
+                      return incomeDate.getMonth() === currentMonth && incomeDate.getFullYear() === currentYear;
+                    })
+                    .reduce((sum, income) => sum + income.amount, 0);
+                })())}
+              </p>
+              <p className="text-xs text-emerald-600/60 dark:text-emerald-400/60">
+                Aylık Gelir
+              </p>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40 border border-emerald-200/50 dark:border-emerald-800/30">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-emerald-600 dark:text-emerald-400/80">Seçilen Ay</p>
-                <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
-                  +{formatCurrency((() => {
-                    const [year, month] = selectedMonth.split('-').map(Number);
-                    return incomes
-                      .filter(income => {
-                        const incomeDate = new Date(income.date);
-                        return incomeDate.getMonth() === month - 1 && incomeDate.getFullYear() === year;
-                      })
-                      .reduce((sum, income) => sum + income.amount, 0);
-                  })())}
-                </p>
-                <p className="text-xs text-emerald-600/60 dark:text-emerald-400/60">
-                  Aylık Gelir
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 border border-green-200/50 dark:border-green-800/30">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-green-600 dark:text-green-400/80">Toplam</p>
-                <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                  +{formatCurrency(totalIncome)}
-                </p>
-                <p className="text-xs text-green-600/60 dark:text-green-400/60">
-                  Tüm Gelirler
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 border border-green-200/50 dark:border-green-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-green-600 dark:text-green-400/80">Toplam</p>
+              <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                +{formatCurrency(totalIncome)}
+              </p>
+              <p className="text-xs text-green-600/60 dark:text-green-400/60">
+                Tüm Gelirler
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1234,67 +1189,45 @@ const BudgetApp = () => {
 
         {/* Monthly and Total Debt Summary */}
         {debts.length > 0 && (
-          <div className="space-y-4 mb-6">
-            {/* Month Selector */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Ay Seçin:</label>
-                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableMonths.map(month => (
-                        <SelectItem key={month.value} value={month.value}>
-                          {month.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Card className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/40 dark:to-pink-950/40 border border-red-200/50 dark:border-red-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-red-600 dark:text-red-400/80">Bu Ay Ödenen</p>
+                <p className="text-lg font-bold text-red-700 dark:text-red-300">
+                  -{formatCurrency((() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    let monthlyPayments = 0;
+                    
+                    debts.forEach(debt => {
+                      debt.payments.forEach(payment => {
+                        const paymentDate = new Date(payment.date);
+                        if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+                          monthlyPayments += payment.amount;
+                        }
+                      });
+                    });
+                    
+                    return monthlyPayments;
+                  })())}
+                </p>
+                <p className="text-xs text-red-600/60 dark:text-red-400/60">
+                  Aylık Ödeme
+                </p>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/40 dark:to-pink-950/40 border border-red-200/50 dark:border-red-800/30">
-                <CardContent className="p-4 text-center">
-                  <p className="text-xs text-red-600 dark:text-red-400/80">Seçilen Ay</p>
-                  <p className="text-lg font-bold text-red-700 dark:text-red-300">
-                    -{formatCurrency((() => {
-                      const [year, month] = selectedMonth.split('-').map(Number);
-                      let monthlyPayments = 0;
-                      
-                      debts.forEach(debt => {
-                        debt.payments.forEach(payment => {
-                          const paymentDate = new Date(payment.date);
-                          if (paymentDate.getMonth() === month - 1 && paymentDate.getFullYear() === year) {
-                            monthlyPayments += payment.amount;
-                          }
-                        });
-                      });
-                      
-                      return monthlyPayments;
-                    })())}
-                  </p>
-                  <p className="text-xs text-red-600/60 dark:text-red-400/60">
-                    Aylık Ödeme
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-950/40 dark:to-red-950/40 border border-pink-200/50 dark:border-pink-800/30">
-                <CardContent className="p-4 text-center">
-                  <p className="text-xs text-pink-600 dark:text-pink-400/80">Toplam</p>
-                  <p className="text-lg font-bold text-pink-700 dark:text-pink-300">
-                    -{formatCurrency(totalDebtAmount)}
-                  </p>
-                  <p className="text-xs text-pink-600/60 dark:text-pink-400/60">
-                    Tüm Borçlar
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-950/40 dark:to-red-950/40 border border-pink-200/50 dark:border-pink-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-pink-600 dark:text-pink-400/80">Toplam</p>
+                <p className="text-lg font-bold text-pink-700 dark:text-pink-300">
+                  -{formatCurrency(totalDebtAmount)}
+                </p>
+                <p className="text-xs text-pink-600/60 dark:text-pink-400/60">
+                  Tüm Borçlar
+                </p>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -1407,68 +1340,46 @@ const BudgetApp = () => {
 
       {/* Monthly and Total Savings Summary */}
       {savingGoals.length > 0 && (
-        <div className="space-y-4 mb-6">
-          {/* Month Selector */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Ay Seçin:</label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableMonths.map(month => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/40 dark:to-purple-950/40 border border-blue-200/50 dark:border-blue-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-blue-600 dark:text-blue-400/80">Bu Ay Eklenen</p>
+              <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                +{formatCurrency((() => {
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  let monthlyTotal = 0;
+                  
+                  // Calculate monthly contributions from all goals
+                  Object.values(savingContributionsByGoal).forEach(contributions => {
+                    contributions.forEach(contribution => {
+                      const contributionDate = new Date(contribution.date);
+                      if (contributionDate.getMonth() === currentMonth && contributionDate.getFullYear() === currentYear) {
+                        monthlyTotal += contribution.amount;
+                      }
+                    });
+                  });
+                  
+                  return monthlyTotal;
+                })())}
+              </p>
+              <p className="text-xs text-blue-600/60 dark:text-blue-400/60">
+                Aylık Birikim
+              </p>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/40 dark:to-purple-950/40 border border-blue-200/50 dark:border-blue-800/30">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-blue-600 dark:text-blue-400/80">Seçilen Ay</p>
-                <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                  +{formatCurrency((() => {
-                    const [year, month] = selectedMonth.split('-').map(Number);
-                    let monthlyTotal = 0;
-                    
-                    // Calculate monthly contributions from all goals
-                    Object.values(savingContributionsByGoal).forEach(contributions => {
-                      contributions.forEach(contribution => {
-                        const contributionDate = new Date(contribution.date);
-                        if (contributionDate.getMonth() === month - 1 && contributionDate.getFullYear() === year) {
-                          monthlyTotal += contribution.amount;
-                        }
-                      });
-                    });
-                    
-                    return monthlyTotal;
-                  })())}
-                </p>
-                <p className="text-xs text-blue-600/60 dark:text-blue-400/60">
-                  Aylık Birikim
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/40 dark:to-blue-950/40 border border-purple-200/50 dark:border-purple-800/30">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-purple-600 dark:text-purple-400/80">Toplam</p>
-                <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
-                  +{formatCurrency(usedSavingsFund)}
-                </p>
-                <p className="text-xs text-purple-600/60 dark:text-purple-400/60">
-                  Tüm Birikimler
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/40 dark:to-blue-950/40 border border-purple-200/50 dark:border-purple-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-purple-600 dark:text-purple-400/80">Toplam</p>
+              <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                +{formatCurrency(usedSavingsFund)}
+              </p>
+              <p className="text-xs text-purple-600/60 dark:text-purple-400/60">
+                Tüm Birikimler
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1829,61 +1740,39 @@ const BudgetApp = () => {
 
         {/* Monthly and Total Expenses Summary */}
         {expenses.length > 0 && (
-          <div className="space-y-4 mb-6">
-            {/* Month Selector */}
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Ay Seçin:</label>
-                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableMonths.map(month => (
-                        <SelectItem key={month.value} value={month.value}>
-                          {month.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Card className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/40 dark:to-red-950/40 border border-orange-200/50 dark:border-orange-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-orange-600 dark:text-orange-400/80">Bu Ay Toplam</p>
+                <p className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                  -{formatCurrency((() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    return expenses
+                      .filter(expense => {
+                        const expenseDate = new Date(expense.date);
+                        return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+                      })
+                      .reduce((sum, expense) => sum + expense.amount, 0);
+                  })())}
+                </p>
+                <p className="text-xs text-orange-600/60 dark:text-orange-400/60">
+                  Aylık Harcama
+                </p>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/40 dark:to-red-950/40 border border-orange-200/50 dark:border-orange-800/30">
-                <CardContent className="p-4 text-center">
-                  <p className="text-xs text-orange-600 dark:text-orange-400/80">Seçilen Ay</p>
-                  <p className="text-lg font-bold text-orange-700 dark:text-orange-300">
-                    -{formatCurrency((() => {
-                      const [year, month] = selectedMonth.split('-').map(Number);
-                      return expenses
-                        .filter(expense => {
-                          const expenseDate = new Date(expense.date);
-                          return expenseDate.getMonth() === month - 1 && expenseDate.getFullYear() === year;
-                        })
-                        .reduce((sum, expense) => sum + expense.amount, 0);
-                    })())}
-                  </p>
-                  <p className="text-xs text-orange-600/60 dark:text-orange-400/60">
-                    Aylık Harcama
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/40 dark:to-orange-950/40 border border-red-200/50 dark:border-red-800/30">
-                <CardContent className="p-4 text-center">
-                  <p className="text-xs text-red-600 dark:text-red-400/80">Toplam</p>
-                  <p className="text-lg font-bold text-red-700 dark:text-red-300">
-                    -{formatCurrency(totalExpenses)}
-                  </p>
-                  <p className="text-xs text-red-600/60 dark:text-red-400/60">
-                    Tüm Harcamalar
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/40 dark:to-orange-950/40 border border-red-200/50 dark:border-red-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-red-600 dark:text-red-400/80">Toplam</p>
+                <p className="text-lg font-bold text-red-700 dark:text-red-300">
+                  -{formatCurrency(totalExpenses)}
+                </p>
+                <p className="text-xs text-red-600/60 dark:text-red-400/60">
+                  Tüm Harcamalar
+                </p>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -2136,6 +2025,15 @@ const BudgetApp = () => {
           {activeTab === 'debts' && renderDebts()}
           {activeTab === 'saving-goals' && renderSavingGoals()}
           {activeTab === 'expenses' && renderExpenses()}
+          {activeTab === 'reports' && (
+            <Reports 
+              incomes={incomes}
+              expenses={expenses}
+              debts={debts}
+              savingGoals={savingGoals}
+              savingContributionsByGoal={savingContributionsByGoal}
+            />
+          )}
           {activeTab === 'transfers' && (
             <FundTransfer 
               settings={settings} 
@@ -2209,6 +2107,15 @@ const BudgetApp = () => {
             >
               <ArrowLeftRight className="w-5 h-5" />
               <span className="text-xs">Transfer</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className={`flex flex-col items-center justify-center gap-1 ${
+                activeTab === 'reports' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-xs">Raporlar</span>
             </button>
             <button
               onClick={() => setActiveTab('settings')}
