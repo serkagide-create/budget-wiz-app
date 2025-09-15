@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { FileText, Download, Calendar, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { FileText, Download, Calendar, TrendingUp, TrendingDown, BarChart3, Filter } from "lucide-react";
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -23,6 +23,8 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
   });
   
   const [reportType, setReportType] = useState<'monthly' | 'weekly'>('monthly');
+  const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string>('');
+  const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string>('');
 
   // Generate available months
   const getAvailableMonths = () => {
@@ -37,6 +39,17 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
     }
     
     return months;
+  };
+
+  // Get unique categories
+  const getIncomeCategories = () => {
+    const categories = [...new Set(incomes.map(income => income.category))];
+    return categories.filter(Boolean);
+  };
+
+  const getExpenseCategories = () => {
+    const categories = [...new Set(expenses.map(expense => expense.category))];
+    return categories.filter(Boolean);
   };
 
   // Calculate monthly data
@@ -81,6 +94,35 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
       incomes: monthlyIncomes,
       expenses: monthlyExpenses
     };
+  };
+
+  // Get category data
+  const getCategoryData = (month: string, type: 'income' | 'expense', category: string) => {
+    const [year, monthNum] = month.split('-').map(Number);
+    
+    if (type === 'income') {
+      const categoryIncomes = incomes.filter(income => {
+        const incomeDate = new Date(income.date);
+        return incomeDate.getMonth() === monthNum - 1 && 
+               incomeDate.getFullYear() === year && 
+               income.category === category;
+      });
+      return {
+        items: categoryIncomes,
+        total: categoryIncomes.reduce((sum, income) => sum + income.amount, 0)
+      };
+    } else {
+      const categoryExpenses = expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getMonth() === monthNum - 1 && 
+               expenseDate.getFullYear() === year && 
+               expense.category === category;
+      });
+      return {
+        items: categoryExpenses,
+        total: categoryExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+      };
+    }
   };
 
   // Get weekly data for current month
@@ -160,6 +202,13 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
   const monthlyData = getMonthlyData(selectedMonth);
   const weeklyData = getWeeklyData(selectedMonth);
   const availableMonths = getAvailableMonths();
+  const incomeCategories = getIncomeCategories();
+  const expenseCategories = getExpenseCategories();
+  
+  const selectedIncomeCategoryData = selectedIncomeCategory ? 
+    getCategoryData(selectedMonth, 'income', selectedIncomeCategory) : null;
+  const selectedExpenseCategoryData = selectedExpenseCategory ? 
+    getCategoryData(selectedMonth, 'expense', selectedExpenseCategory) : null;
 
   return (
     <div className="space-y-6">
@@ -280,55 +329,136 @@ export const Reports = ({ incomes, expenses, debts, savingGoals, savingContribut
             </CardContent>
           </Card>
         ) : (
-          // Monthly Detailed Report
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Income Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-green-600">Gelir Detayları</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {monthlyData.incomes.length > 0 ? (
-                    monthlyData.incomes.map((income, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 border-b">
-                        <div>
-                          <p className="font-medium">{income.description}</p>
-                          <p className="text-sm text-gray-500">{formatDate(income.date)}</p>
-                        </div>
-                        <p className="font-semibold text-green-600">+{formatCurrency(income.amount)}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">Bu ay gelir kaydı bulunmuyor</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          // Category Selection and Details
+          <div className="space-y-6">
+            {/* Category Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-green-600 flex items-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Gelir Kategorisi Seç
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Select value={selectedIncomeCategory} onValueChange={setSelectedIncomeCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kategori seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Hepsini Temizle</SelectItem>
+                      {incomeCategories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
 
-            {/* Expense Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-red-600">Gider Detayları</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {monthlyData.expenses.length > 0 ? (
-                    monthlyData.expenses.map((expense, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 border-b">
-                        <div>
-                          <p className="font-medium">{expense.description}</p>
-                          <p className="text-sm text-gray-500">{formatDate(expense.date)}</p>
-                        </div>
-                        <p className="font-semibold text-red-600">-{formatCurrency(expense.amount)}</p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 text-center py-4">Bu ay gider kaydı bulunmuyor</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-red-600 flex items-center gap-2">
+                    <Filter className="w-5 h-5" />
+                    Gider Kategorisi Seç
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Select value={selectedExpenseCategory} onValueChange={setSelectedExpenseCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kategori seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Hepsini Temizle</SelectItem>
+                      {expenseCategories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Selected Category Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Selected Income Category */}
+              {selectedIncomeCategoryData && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-green-600">
+                      {selectedIncomeCategory} - Gelir Detayları
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Toplam: <span className="font-bold text-green-600">+{formatCurrency(selectedIncomeCategoryData.total)}</span>
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {selectedIncomeCategoryData.items.length > 0 ? (
+                        selectedIncomeCategoryData.items.map((income, index) => (
+                          <div key={index} className="flex justify-between items-center py-2 border-b">
+                            <div>
+                              <p className="font-medium">{income.description}</p>
+                              <p className="text-sm text-gray-500">{formatDate(income.date)}</p>
+                            </div>
+                            <p className="font-semibold text-green-600">+{formatCurrency(income.amount)}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">Bu kategoride gelir kaydı bulunmuyor</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Selected Expense Category */}
+              {selectedExpenseCategoryData && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-red-600">
+                      {selectedExpenseCategory} - Gider Detayları
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Toplam: <span className="font-bold text-red-600">-{formatCurrency(selectedExpenseCategoryData.total)}</span>
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {selectedExpenseCategoryData.items.length > 0 ? (
+                        selectedExpenseCategoryData.items.map((expense, index) => (
+                          <div key={index} className="flex justify-between items-center py-2 border-b">
+                            <div>
+                              <p className="font-medium">{expense.description}</p>
+                              <p className="text-sm text-gray-500">{formatDate(expense.date)}</p>
+                            </div>
+                            <p className="font-semibold text-red-600">-{formatCurrency(expense.amount)}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">Bu kategoride gider kaydı bulunmuyor</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Show message when no category is selected */}
+            {!selectedIncomeCategory && !selectedExpenseCategory && (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Filter className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Kategori Detaylarını Görüntüle</h3>
+                  <p className="text-muted-foreground">
+                    Yukarıdaki filtrelerden gelir veya gider kategorisi seçerek detaylı harcama analizini görüntüleyebilirsiniz.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
