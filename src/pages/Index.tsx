@@ -577,17 +577,24 @@ const BudgetApp = () => {
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-  // Calculate fund allocations based on income percentages (this is the correct total allocation)
+  // Base funds from income percentages
   const debtFund = (totalIncome * settings.debtPercentage) / 100;
   const savingsFund = (totalIncome * settings.savingsPercentage) / 100;
   const livingExpensesFund = (totalIncome * settings.livingExpensesPercentage) / 100;
-  const usedDebtFund = debts.reduce((sum, debt) => 
+
+  // Include only MANUAL transfers to adjust funds
+  const manualTransfers = transfers.filter(t => t.transferType === 'manual');
+  const netForFund = (fund: 'balance' | 'debt_fund' | 'savings_fund') =>
+    manualTransfers.reduce((sum, t) => sum + (t.toFund === fund ? t.amount : 0) - (t.fromFund === fund ? t.amount : 0), 0);
+
+  const usedDebtFund = debts.reduce((sum, debt) =>
     sum + debt.payments.reduce((paySum, payment) => paySum + payment.amount, 0), 0
   );
   const usedSavingsFund = savingGoals.reduce((sum, goal) => sum + goal.currentAmount, 0);
-  const availableDebtFund = Math.max(0, debtFund - usedDebtFund);
-  const availableSavingsFund = Math.max(0, savingsFund - usedSavingsFund);
-  const availableLivingExpensesFund = Math.max(0, livingExpensesFund - totalExpenses);
+
+  const availableDebtFund = Math.max(0, debtFund + netForFund('debt_fund') - usedDebtFund);
+  const availableSavingsFund = Math.max(0, savingsFund + netForFund('savings_fund') - usedSavingsFund);
+  const availableLivingExpensesFund = Math.max(0, livingExpensesFund + netForFund('balance') - totalExpenses);
 
   // Debt Strategy Logic
   const getSortedDebts = () => {
