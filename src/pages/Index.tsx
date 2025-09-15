@@ -161,12 +161,13 @@ const BudgetApp = () => {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Generate available months (last 12 months)
+  // Generate available months (based on actual data dates)
   const getAvailableMonths = () => {
     const months = [];
     const now = new Date();
     
-    for (let i = 0; i < 12; i++) {
+    // Get last 24 months to cover more historical data
+    for (let i = 0; i < 24; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
