@@ -1333,25 +1333,33 @@ export const useFinancialData = () => {
     if (!user) return { success: false, error: 'Kullanıcı bulunamadı' };
 
     try {
-      const { error } = await (supabase as any)
+      // First revert the transfer using the database function
+      const { error: revertError } = await (supabase as any).rpc('revert_transfer', {
+        p_transfer_id: transferId
+      });
+
+      if (revertError) throw revertError;
+
+      // Then delete the transfer record
+      const { error: deleteError } = await (supabase as any)
         .from('transfers')
         .delete()
         .eq('id', transferId)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
 
       await Promise.all([loadSettings(), loadTransfers()]);
       toast({
-        title: "Transfer Silindi",
-        description: "Transfer kaydı başarıyla silindi.",
+        title: "Transfer İptal Edildi",
+        description: "Transfer iptal edildi ve fonlar geri yüklendi.",
       });
       return { success: true };
     } catch (error: any) {
       console.error('Error deleting transfer:', error);
       toast({
         title: "Hata",
-        description: "Transfer silinirken bir hata oluştu.",
+        description: "Transfer iptal edilirken bir hata oluştu.",
         variant: "destructive"
       });
       return { success: false, error: error.message };
