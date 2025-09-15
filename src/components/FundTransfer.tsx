@@ -63,7 +63,7 @@ const FundTransfer: React.FC<FundTransferProps> = ({
   const getAvailableBalance = (fund: 'balance' | 'debt_fund' | 'savings_fund') => {
     switch (fund) {
       case 'balance':
-        return availableLivingExpensesFund;
+        return settings.balance || 0;
       case 'debt_fund':
         return availableDebtFund;
       case 'savings_fund':
@@ -114,7 +114,7 @@ const FundTransfer: React.FC<FundTransferProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-muted-foreground truncate">Harcanabilir Fon</p>
-                <p className="text-lg font-bold truncate">{formatCurrency(availableLivingExpensesFund)}</p>
+                <p className="text-lg font-bold truncate">{formatCurrency(settings.balance || 0)}</p>
               </div>
             </div>
           </CardContent>
@@ -172,7 +172,7 @@ const FundTransfer: React.FC<FundTransferProps> = ({
                   <SelectItem value="balance">
                     <div className="flex items-center gap-2 max-w-full">
                       <Wallet className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">Harcanabilir ({formatCurrency(availableLivingExpensesFund)})</span>
+                      <span className="truncate">Harcanabilir ({formatCurrency(settings.balance || 0)})</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="debt_fund">
