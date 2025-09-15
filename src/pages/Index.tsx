@@ -1610,6 +1610,44 @@ const BudgetApp = () => {
           </CardContent>
         </Card>
 
+        {/* Monthly and Total Expenses Summary */}
+        {expenses.length > 0 && (
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Card className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/40 dark:to-red-950/40 border border-orange-200/50 dark:border-orange-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-orange-600 dark:text-orange-400/80">Bu Ay Toplam</p>
+                <p className="text-lg font-bold text-orange-700 dark:text-orange-300">
+                  -{formatCurrency((() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    return expenses
+                      .filter(expense => {
+                        const expenseDate = new Date(expense.date);
+                        return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+                      })
+                      .reduce((sum, expense) => sum + expense.amount, 0);
+                  })())}
+                </p>
+                <p className="text-xs text-orange-600/60 dark:text-orange-400/60">
+                  Aylık Harcama
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/40 dark:to-orange-950/40 border border-red-200/50 dark:border-red-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-red-600 dark:text-red-400/80">Toplam</p>
+                <p className="text-lg font-bold text-red-700 dark:text-red-300">
+                  -{formatCurrency(totalExpenses)}
+                </p>
+                <p className="text-xs text-red-600/60 dark:text-red-400/60">
+                  Tüm Harcamalar
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Expenses by Category */}
         {expenses.length === 0 ? (
           <Card>
