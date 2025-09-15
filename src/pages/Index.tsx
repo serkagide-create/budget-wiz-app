@@ -577,10 +577,10 @@ const BudgetApp = () => {
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-  // Use persisted fund balances from user_settings for accuracy
-  const debtFund = settings.debtFund || 0;
-  const savingsFund = settings.savingsFund || 0;
-  const livingExpensesFund = settings.livingExpensesFund || 0;
+  // Calculate fund allocations based on income percentages (this is the correct total allocation)
+  const debtFund = (totalIncome * settings.debtPercentage) / 100;
+  const savingsFund = (totalIncome * settings.savingsPercentage) / 100;
+  const livingExpensesFund = (totalIncome * settings.livingExpensesPercentage) / 100;
   const usedDebtFund = debts.reduce((sum, debt) => 
     sum + debt.payments.reduce((paySum, payment) => paySum + payment.amount, 0), 0
   );
