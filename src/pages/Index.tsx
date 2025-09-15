@@ -1186,6 +1186,50 @@ const BudgetApp = () => {
           </CardContent>
         </Card>
 
+        {/* Monthly and Total Debt Summary */}
+        {debts.length > 0 && (
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <Card className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-950/40 dark:to-pink-950/40 border border-red-200/50 dark:border-red-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-red-600 dark:text-red-400/80">Bu Ay Ödenen</p>
+                <p className="text-lg font-bold text-red-700 dark:text-red-300">
+                  -{formatCurrency((() => {
+                    const currentMonth = new Date().getMonth();
+                    const currentYear = new Date().getFullYear();
+                    let monthlyPayments = 0;
+                    
+                    debts.forEach(debt => {
+                      debt.payments.forEach(payment => {
+                        const paymentDate = new Date(payment.date);
+                        if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
+                          monthlyPayments += payment.amount;
+                        }
+                      });
+                    });
+                    
+                    return monthlyPayments;
+                  })())}
+                </p>
+                <p className="text-xs text-red-600/60 dark:text-red-400/60">
+                  Aylık Ödeme
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-r from-pink-50 to-red-50 dark:from-pink-950/40 dark:to-red-950/40 border border-pink-200/50 dark:border-pink-800/30">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-pink-600 dark:text-pink-400/80">Toplam</p>
+                <p className="text-lg font-bold text-pink-700 dark:text-pink-300">
+                  -{formatCurrency(totalDebtAmount)}
+                </p>
+                <p className="text-xs text-pink-600/60 dark:text-pink-400/60">
+                  Tüm Borçlar
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Debt List with Accordion */}
         {debts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
