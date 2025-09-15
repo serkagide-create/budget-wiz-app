@@ -2006,23 +2006,14 @@ const BudgetApp = () => {
                 <p className="text-xs text-muted-foreground">Finansal Özgürlük</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setActiveTab('settings')}
-                className={activeTab === 'settings' ? 'text-primary' : ''}
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              >
-                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveTab('settings')}
+              className={activeTab === 'settings' ? 'text-primary' : ''}
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
