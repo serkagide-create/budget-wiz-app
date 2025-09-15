@@ -613,14 +613,19 @@ const BudgetApp = () => {
       };
     });
 
-    // Tamamlanmamış borçları filtrele
+    // Tamamlanmamış borçları sırala
     const activeDebts = debtsWithCalculations.filter(debt => !debt.isCompleted);
+    const completedDebts = debtsWithCalculations.filter(debt => debt.isCompleted);
 
+    let sortedActiveDebts;
     if (settings.debtStrategy === 'snowball') {
-      return activeDebts.sort((a, b) => a.remaining - b.remaining);
+      sortedActiveDebts = activeDebts.sort((a, b) => a.remaining - b.remaining);
     } else {
-      return activeDebts.sort((a, b) => b.estimatedInterestRate - a.estimatedInterestRate);
+      sortedActiveDebts = activeDebts.sort((a, b) => b.estimatedInterestRate - a.estimatedInterestRate);
     }
+
+    // Aktif borçları önce, tamamlanmış borçları sonda göster
+    return [...sortedActiveDebts, ...completedDebts.sort((a, b) => b.remaining - a.remaining)];
   };
 
   // Render Functions
