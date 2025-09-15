@@ -902,6 +902,44 @@ const BudgetApp = () => {
         </CardContent>
       </Card>
 
+      {/* Monthly and Total Income Summary */}
+      {incomes.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Card className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/40 dark:to-green-950/40 border border-emerald-200/50 dark:border-emerald-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400/80">Bu Ay Toplam</p>
+              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                +{formatCurrency((() => {
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  return incomes
+                    .filter(income => {
+                      const incomeDate = new Date(income.date);
+                      return incomeDate.getMonth() === currentMonth && incomeDate.getFullYear() === currentYear;
+                    })
+                    .reduce((sum, income) => sum + income.amount, 0);
+                })())}
+              </p>
+              <p className="text-xs text-emerald-600/60 dark:text-emerald-400/60">
+                Aylık Gelir
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/40 dark:to-emerald-950/40 border border-green-200/50 dark:border-green-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-green-600 dark:text-green-400/80">Toplam</p>
+              <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                +{formatCurrency(totalIncome)}
+              </p>
+              <p className="text-xs text-green-600/60 dark:text-green-400/60">
+                Tüm Gelirler
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Income List Grouped by Category */}
       {incomes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
@@ -1254,6 +1292,51 @@ const BudgetApp = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Monthly and Total Savings Summary */}
+      {savingGoals.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/40 dark:to-purple-950/40 border border-blue-200/50 dark:border-blue-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-blue-600 dark:text-blue-400/80">Bu Ay Eklenen</p>
+              <p className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                +{formatCurrency((() => {
+                  const currentMonth = new Date().getMonth();
+                  const currentYear = new Date().getFullYear();
+                  let monthlyTotal = 0;
+                  
+                  // Calculate monthly contributions from all goals
+                  Object.values(savingContributionsByGoal).forEach(contributions => {
+                    contributions.forEach(contribution => {
+                      const contributionDate = new Date(contribution.date);
+                      if (contributionDate.getMonth() === currentMonth && contributionDate.getFullYear() === currentYear) {
+                        monthlyTotal += contribution.amount;
+                      }
+                    });
+                  });
+                  
+                  return monthlyTotal;
+                })())}
+              </p>
+              <p className="text-xs text-blue-600/60 dark:text-blue-400/60">
+                Aylık Birikim
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/40 dark:to-blue-950/40 border border-purple-200/50 dark:border-purple-800/30">
+            <CardContent className="p-4 text-center">
+              <p className="text-xs text-purple-600 dark:text-purple-400/80">Toplam</p>
+              <p className="text-lg font-bold text-purple-700 dark:text-purple-300">
+                +{formatCurrency(usedSavingsFund)}
+              </p>
+              <p className="text-xs text-purple-600/60 dark:text-purple-400/60">
+                Tüm Birikimler
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Saving Goals Accordion */}
       {savingGoals.length === 0 ? (
