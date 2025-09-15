@@ -1625,6 +1625,7 @@ const BudgetApp = () => {
       education: { name: '📚 Eğitim', expenses: [] as any[] },
       children: { name: '👶 Çocuk Masrafları', expenses: [] as any[] },
       clothing: { name: '👕 Giyim', expenses: [] as any[] },
+      rent: { name: '🏠 Kira', expenses: [] as any[] },
       other: { name: '📋 Diğer', expenses: [] as any[] }
     };
 
@@ -1713,6 +1714,7 @@ const BudgetApp = () => {
                       <SelectItem value="education">📚 Eğitim</SelectItem>
                       <SelectItem value="children">👶 Çocuk Masrafları</SelectItem>
                       <SelectItem value="clothing">👕 Giyim</SelectItem>
+                      <SelectItem value="rent">🏠 Kira</SelectItem>
                       <SelectItem value="other">📋 Diğer</SelectItem>
                       <SelectItem value="custom">➕ Özel Kategori Ekle</SelectItem>
                       {expenseForm.category === '' && (
