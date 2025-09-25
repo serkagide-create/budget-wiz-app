@@ -168,6 +168,7 @@ const BudgetApp = () => {
 
   const handleAssessmentComplete = () => {
     setAssessmentCompleted(true);
+    localStorage.setItem('financialAssessmentCompleted', 'true');
   };
 
   // AI Assistant State
