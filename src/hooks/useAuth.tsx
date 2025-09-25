@@ -13,7 +13,10 @@ export const useAuth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        // Log auth events without exposing sensitive session data
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Auth state changed:', event, session?.user?.id ? 'authenticated' : 'unauthenticated');
+        }
         
         if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
