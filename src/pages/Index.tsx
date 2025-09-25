@@ -733,10 +733,10 @@ const BudgetApp = () => {
         <div className="bg-card rounded-lg shadow-md p-2">
           <Tabs defaultValue="strategy" className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-transparent">
-              <TabsTrigger value="strategy" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Strateji</TabsTrigger>
-              <TabsTrigger value="budget" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Bütçe</TabsTrigger>
-              <TabsTrigger value="planning" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Planlama</TabsTrigger>
-              <TabsTrigger value="goals" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Hedefler</TabsTrigger>
+              <TabsTrigger value="strategy" className="w-full text-center py-2 rounded-md data-[state=active]:bg-muted data-[state=active]:text-foreground hover:bg-muted/50 transition-colors font-semibold">Strateji</TabsTrigger>
+              <TabsTrigger value="budget" className="w-full text-center py-2 rounded-md data-[state=active]:bg-muted data-[state=active]:text-foreground hover:bg-muted/50 transition-colors font-semibold">Bütçe</TabsTrigger>
+              <TabsTrigger value="planning" className="w-full text-center py-2 rounded-md data-[state=active]:bg-muted data-[state=active]:text-foreground hover:bg-muted/50 transition-colors font-semibold">Planlama</TabsTrigger>
+              <TabsTrigger value="goals" className="w-full text-center py-2 rounded-md data-[state=active]:bg-muted data-[state=active]:text-foreground hover:bg-muted/50 transition-colors font-semibold">Hedefler</TabsTrigger>
             </TabsList>
             
             <TabsContent value="strategy" className="space-y-4 mt-4 p-2">
