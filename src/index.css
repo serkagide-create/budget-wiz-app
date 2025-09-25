@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 142.1 76.2% 36.3%;
+    --primary: 160 81% 54%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 95%;
@@ -32,14 +32,14 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 76.2% 36.3%;
+    --ring: 160 81% 54%;
 
     --radius: 0.75rem;
 
     /* Financial App Custom Colors */
-    --income: 142.1 76.2% 36.3%;
+    --income: 160 81% 54%;
     --income-foreground: 0 0% 98%;
-    --income-light: 142.1 70% 45%;
+    --income-light: 160 75% 65%;
 
     --expense: 24.6 95% 53.1%;
     --expense-foreground: 0 0% 98%;
@@ -136,8 +136,14 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-display;
   }
+}
+
+/* Material Icons Style */
+.material-icons {
+  font-size: 24px;
+  font-family: 'Material Icons';
 }
 
 /* Landing Page Animations */

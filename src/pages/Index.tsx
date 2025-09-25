@@ -632,152 +632,136 @@ const BudgetApp = () => {
   const renderDashboard = () => (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-gradient-income border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-income-foreground/80">Toplam Gelir</p>
-                <p className="text-xl font-bold text-income-foreground">
-                  {formatCurrency(totalIncome)}
-                </p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-income-foreground/60" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-primary text-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-start">
+            <p className="text-sm">Toplam Gelir</p>
+            <span className="material-icons">trending_up</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">
+            {formatCurrency(totalIncome)}
+          </p>
+        </div>
 
-        <Card className="bg-gradient-expense border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-expense-foreground/80">Borç Fonu (%{settings.debtPercentage})</p>
-                <p className="text-xl font-bold text-expense-foreground">
-                  {formatCurrency(availableDebtFund)}
-                </p>
-              </div>
-              <Target className="w-8 h-8 text-expense-foreground/60" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-orange-500 text-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-start">
+            <p className="text-sm">Borç Fonu (%{settings.debtPercentage})</p>
+            <span className="material-icons">track_changes</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">
+            {formatCurrency(availableDebtFund)}
+          </p>
+        </div>
 
-        <Card className="bg-gradient-savings border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-savings-foreground/80">Birikim Fonu (%{settings.savingsPercentage})</p>
-                <p className="text-xl font-bold text-savings-foreground">
-                  {formatCurrency(availableSavingsFund)}
-                </p>
-              </div>
-              <Wallet className="w-8 h-8 text-savings-foreground/60" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-blue-500 text-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-start">
+            <p className="text-sm">Birikim Fonu (%{settings.savingsPercentage})</p>
+            <span className="material-icons">account_balance_wallet</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">
+            {formatCurrency(availableSavingsFund)}
+          </p>
+        </div>
 
-        <Card className="bg-gradient-spendable border-0">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-spendable-foreground/80">Harcanabilir Fon (%{settings.livingExpensesPercentage})</p>
-                <p className="text-xl font-bold text-spendable-foreground">
-                  {formatCurrency(availableLivingExpensesFund)}
-                </p>
-              </div>
-              <CreditCard className="w-8 h-8 text-spendable-foreground/60" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-purple-500 text-white p-4 rounded-lg shadow-md">
+          <div className="flex justify-between items-start">
+            <p className="text-sm">Harcanabilir Fon (%{settings.livingExpensesPercentage})</p>
+            <span className="material-icons">credit_card</span>
+          </div>
+          <p className="text-2xl font-bold mt-2">
+            {formatCurrency(availableLivingExpensesFund)}
+          </p>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button 
-          variant="outline" 
-          className="h-16 text-left justify-start" 
+      <div className="grid grid-cols-2 gap-4">
+        <button 
           onClick={() => setActiveTab('incomes')} 
+          className="bg-card p-4 rounded-lg shadow-md flex justify-between items-center text-left border border-border hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-income/20 p-2 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-income" />
+            <div className="bg-primary/20 p-2 rounded-full">
+              <span className="material-icons text-primary">add</span>
             </div>
             <div>
-              <p className="font-medium">Gelir Ekle</p>
-              <p className="text-sm text-muted-foreground">Maaş, kira geliri vb.</p>
+              <p className="font-semibold">Gelir Ekle</p>
+              <p className="text-xs text-muted-foreground">Maaş, kira geliri vb.</p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 ml-auto" />
-        </Button>
+          <span className="material-icons text-muted-foreground">chevron_right</span>
+        </button>
 
-        <Button 
-          variant="outline" 
-          className="h-16 text-left justify-start" 
+        <button 
           onClick={() => setActiveTab('debts')} 
+          className="bg-card p-4 rounded-lg shadow-md flex justify-between items-center text-left border border-border hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="bg-expense/20 p-2 rounded-lg">
-              <Target className="w-5 h-5 text-expense" />
+            <div className="bg-orange-100 dark:bg-orange-900 p-2 rounded-full">
+              <span className="material-icons text-orange-500">receipt_long</span>
             </div>
             <div>
-              <p className="font-medium">Borç Ekle</p>
-              <p className="text-sm text-muted-foreground">Kredi kartı, kredi vb.</p>
+              <p className="font-semibold">Borç Ekle</p>
+              <p className="text-xs text-muted-foreground">Kredi kartı, kredi vb.</p>
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 ml-auto" />
-        </Button>
+          <span className="material-icons text-muted-foreground">chevron_right</span>
+        </button>
       </div>
 
       {/* Finansal Planlama & Analiz */}
       <div className="space-y-6">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold">Finansal Planlama & Analiz</h2>
-          <p className="text-muted-foreground text-sm">Borç stratejinizi analiz edin ve geleceği planlayın</p>
+          <h2 className="text-xl font-bold">Finansal Planlama & Analiz</h2>
+          <p className="text-muted-foreground text-sm mt-1">Borç stratejinizi analiz edin ve geleceği planlayın</p>
         </div>
 
-        <Tabs defaultValue="strategy" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="strategy">Strateji</TabsTrigger>
-            <TabsTrigger value="budget">Bütçe</TabsTrigger>
-            <TabsTrigger value="planning">Planlama</TabsTrigger>
-            <TabsTrigger value="goals">Hedefler</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="strategy" className="space-y-4">
-            <DebtStrategyAnalysis
-              debts={debts}
-              strategy={settings.debtStrategy}
-              availableDebtFund={availableDebtFund}
-            />
-          </TabsContent>
-          
-          <TabsContent value="budget" className="space-y-4">
-            <BudgetAnalysis
-              totalIncome={totalIncome}
-              totalExpenses={totalExpenses}
-              debtPayments={totalIncome * settings.debtPercentage / 100}
-              savings={totalIncome * settings.savingsPercentage / 100}
-              settings={settings}
-            />
-          </TabsContent>
-          
-          <TabsContent value="planning" className="space-y-4">
-            <FinancialPlanning
-              debts={debts}
-              savingGoals={savingGoals}
-              monthlyIncome={totalIncome}
-              debtPercentage={settings.debtPercentage}
-              savingsPercentage={settings.savingsPercentage}
-            />
-          </TabsContent>
-          
-          <TabsContent value="goals" className="space-y-4">
-            <GoalTracking
-              debts={debts}
-              monthlyIncome={totalIncome}
-              savingsPercentage={settings.savingsPercentage}
-            />
-          </TabsContent>
-        </Tabs>
+        <div className="bg-card rounded-lg shadow-md p-2">
+          <Tabs defaultValue="strategy" className="w-full">
+            <TabsList className="grid w-full grid-cols-4 bg-transparent">
+              <TabsTrigger value="strategy" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Strateji</TabsTrigger>
+              <TabsTrigger value="budget" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Bütçe</TabsTrigger>
+              <TabsTrigger value="planning" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Planlama</TabsTrigger>
+              <TabsTrigger value="goals" className="w-full text-center py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-white font-semibold">Hedefler</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="strategy" className="space-y-4 mt-4 p-2">
+              <DebtStrategyAnalysis
+                debts={debts}
+                strategy={settings.debtStrategy}
+                availableDebtFund={availableDebtFund}
+              />
+            </TabsContent>
+            
+            <TabsContent value="budget" className="space-y-4 mt-4 p-2">
+              <BudgetAnalysis
+                totalIncome={totalIncome}
+                totalExpenses={totalExpenses}
+                debtPayments={totalIncome * settings.debtPercentage / 100}
+                savings={totalIncome * settings.savingsPercentage / 100}
+                settings={settings}
+              />
+            </TabsContent>
+            
+            <TabsContent value="planning" className="space-y-4 mt-4 p-2">
+              <FinancialPlanning
+                debts={debts}
+                savingGoals={savingGoals}
+                monthlyIncome={totalIncome}
+                debtPercentage={settings.debtPercentage}
+                savingsPercentage={settings.savingsPercentage}
+              />
+            </TabsContent>
+            
+            <TabsContent value="goals" className="space-y-4 mt-4 p-2">
+              <GoalTracking
+                debts={debts}
+                monthlyIncome={totalIncome}
+                savingsPercentage={settings.savingsPercentage}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );
@@ -2007,20 +1991,20 @@ const BudgetApp = () => {
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={brandLogo} alt="Borç Yok" className="w-8 h-8" />
+              <div className="bg-primary p-2 rounded-lg">
+                <span className="material-icons text-white text-2xl">savings</span>
+              </div>
               <div>
-                <h1 className="font-bold text-lg">Borç Yok</h1>
-                <p className="text-xs text-muted-foreground">Finansal Özgürlük</p>
+                <h1 className="font-bold text-xl">Borç Yok</h1>
+                <p className="text-sm text-muted-foreground">Finansal Özgürlük</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
+            <button 
               onClick={() => setActiveTab('settings')}
-              className={activeTab === 'settings' ? 'text-primary' : ''}
+              className={`p-2 rounded-lg ${activeTab === 'settings' ? 'text-primary' : 'text-muted-foreground'}`}
             >
-              <Settings className="w-4 h-4" />
-            </Button>
+              <span className="material-icons text-2xl">settings</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2060,72 +2044,72 @@ const BudgetApp = () => {
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border">
-        <div className="max-w-md mx-auto px-4 py-2">
-          <div className="flex justify-around">
+        <div className="max-w-md mx-auto">
+          <nav className="flex justify-around p-2">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <Home className="w-5 h-5" />
-              <span className="text-xs">Anasayfa</span>
+              <span className="material-icons">home</span>
+              <span className="block text-xs font-medium">Anasayfa</span>
             </button>
             <button
               onClick={() => setActiveTab('incomes')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'incomes' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <TrendingUp className="w-5 h-5" />
-              <span className="text-xs">Gelirler</span>
+              <span className="material-icons">arrow_upward</span>
+              <span className="block text-xs">Gelirler</span>
             </button>
             <button
               onClick={() => setActiveTab('debts')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'debts' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <Target className="w-5 h-5" />
-              <span className="text-xs">Borçlar</span>
+              <span className="material-icons">arrow_downward</span>
+              <span className="block text-xs">Borçlar</span>
             </button>
             <button
               onClick={() => setActiveTab('saving-goals')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'saving-goals' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <Wallet className="w-5 h-5" />
-              <span className="text-xs">Birikimler</span>
+              <span className="material-icons">savings</span>
+              <span className="block text-xs">Birimler</span>
             </button>
             <button
               onClick={() => setActiveTab('expenses')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'expenses' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <Receipt className="w-5 h-5" />
-              <span className="text-xs">Giderler</span>
+              <span className="material-icons">attach_money</span>
+              <span className="block text-xs">Giderler</span>
             </button>
             <button
               onClick={() => setActiveTab('transfers')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'transfers' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <ArrowLeftRight className="w-5 h-5" />
-              <span className="text-xs">Transfer</span>
+              <span className="material-icons">swap_horiz</span>
+              <span className="block text-xs">Transfer</span>
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className={`flex flex-col items-center justify-center gap-1 ${
+              className={`text-center ${
                 activeTab === 'reports' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <BarChart3 className="w-5 h-5" />
-              <span className="text-xs">Raporlar</span>
+              <span className="material-icons">assessment</span>
+              <span className="block text-xs">Raporlar</span>
             </button>
-          </div>
+          </nav>
         </div>
       </div>
     </div>
