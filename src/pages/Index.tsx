@@ -25,6 +25,7 @@ import { DebtStrategyAnalysis } from '@/components/DebtStrategyAnalysis';
 import { BudgetAnalysis } from '@/components/BudgetAnalysis';
 import { FinancialPlanning } from '@/components/FinancialPlanning';
 import { GoalTracking } from '@/components/GoalTracking';
+import { FinancialAssessment } from '@/components/FinancialAssessment';
 import { 
   PlusCircle, 
   Trash2, 
@@ -155,6 +156,19 @@ const BudgetApp = () => {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'expenses' | 'reports' | 'settings'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
+
+  // Assessment state
+  const [assessmentCompleted, setAssessmentCompleted] = useState<boolean>(false);
+
+  // Check if assessment is completed on component mount
+  useEffect(() => {
+    const completed = localStorage.getItem('financialAssessmentCompleted') === 'true';
+    setAssessmentCompleted(completed);
+  }, []);
+
+  const handleAssessmentComplete = () => {
+    setAssessmentCompleted(true);
+  };
 
   // AI Assistant State
   const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'assistant', message: string, timestamp: Date}>>([]);
@@ -1982,6 +1996,11 @@ const BudgetApp = () => {
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // Show assessment if not completed
+  if (!assessmentCompleted) {
+    return <FinancialAssessment onComplete={handleAssessmentComplete} />;
   }
 
   return (
