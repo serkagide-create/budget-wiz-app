@@ -633,7 +633,7 @@ const BudgetApp = () => {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-primary text-white p-4 rounded-lg shadow-md">
+        <div className="bg-green-500 text-white p-4 rounded-lg shadow-md">
           <div className="flex justify-between items-start">
             <p className="text-sm">Toplam Gelir</p>
             <span className="material-icons">trending_up</span>
