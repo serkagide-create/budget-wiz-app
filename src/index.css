@@ -15,11 +15,12 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 160 81% 54%;
+    /* Primary colors - Vibrant teal */
+    --primary: 176 85% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 94%;
-    --secondary-foreground: 220 9% 32%;
+    --secondary: 210 30% 94%;
+    --secondary-foreground: 210 20% 25%;
 
     --muted: 220 12% 88%;
     --muted-foreground: 220 9% 35%;
@@ -32,40 +33,40 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 160 81% 54%;
+    --ring: 176 85% 55%;
 
     --radius: 0.75rem;
 
-    /* Financial App Custom Colors */
-    --income: 160 81% 54%;
+    /* Financial App Custom Colors - Enhanced palette */
+    --income: 140 65% 52%;
     --income-foreground: 0 0% 98%;
-    --income-light: 160 75% 65%;
+    --income-light: 140 65% 65%;
 
-    --expense: 24.6 95% 53.1%;
+    --expense: 15 90% 58%;
     --expense-foreground: 0 0% 98%;
-    --expense-light: 24.6 90% 60%;
+    --expense-light: 15 90% 68%;
 
-    --savings: 213.3 93.9% 67.8%;
+    --savings: 45 88% 58%;
     --savings-foreground: 0 0% 98%;
-    --savings-light: 213.3 85% 75%;
+    --savings-light: 45 88% 68%;
 
-    --spendable: 271.5 81% 55.9%;
+    --spendable: 250 85% 65%;
     --spendable-foreground: 0 0% 98%;
-    --spendable-light: 271.5 75% 65%;
+    --spendable-light: 250 85% 75%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
 
-    /* Gradients */
+    /* Gradients - Modern teal theme */
     --gradient-income: linear-gradient(135deg, hsl(var(--income)), hsl(var(--income-light)));
     --gradient-expense: linear-gradient(135deg, hsl(var(--expense)), hsl(var(--expense-light)));
     --gradient-savings: linear-gradient(135deg, hsl(var(--savings)), hsl(var(--savings-light)));
     --gradient-spendable: linear-gradient(135deg, hsl(var(--spendable)), hsl(var(--spendable-light)));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(176 20% 96%));
 
-    /* Shadows */
-    --shadow-glow: 0 0 40px -10px;
-    --shadow-card: 0 8px 32px -8px hsl(0 0% 0% / 0.3);
+    /* Shadows - Teal glow effects */
+    --shadow-glow: 0 0 40px hsl(176 85% 55% / 0.4);
+    --shadow-card: 0 8px 32px -8px hsl(176 85% 55% / 0.2);
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -89,36 +90,37 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Base colors - Modern dark teal theme */
+    --background: 200 25% 5%;
+    --foreground: 180 10% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 200 25% 8%;
+    --card-foreground: 180 10% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 200 25% 8%;
+    --popover-foreground: 180 10% 95%;
     
     /* Dark mode gradients */
-    --gradient-card: linear-gradient(145deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 17.5%));
+    --gradient-card: linear-gradient(145deg, hsl(200 25% 8%), hsl(200 25% 10%));
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 176 85% 55%;
+    --primary-foreground: 200 25% 5%;
 
-    --secondary: 217.2 22% 22%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 200 20% 12%;
+    --secondary-foreground: 180 10% 95%;
 
-    --muted: 217.2 22% 22%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 200 20% 12%;
+    --muted-foreground: 180 5% 65%;
 
-    --accent: 217.2 22% 22%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 200 20% 12%;
+    --accent-foreground: 180 10% 95%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 180 10% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 200 20% 18%;
+    --input: 200 20% 18%;
+    --ring: 176 85% 55%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
