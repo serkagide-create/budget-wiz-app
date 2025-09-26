@@ -15,8 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Primary colors - Vibrant teal */
-    --primary: 180 95% 45%;
+    /* Primary colors - Modern blue */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 30% 94%;
@@ -33,7 +33,7 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 180 95% 45%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
@@ -62,11 +62,11 @@
     --gradient-expense: linear-gradient(135deg, hsl(var(--expense)), hsl(var(--expense-light)));
     --gradient-savings: linear-gradient(135deg, hsl(var(--savings)), hsl(var(--savings-light)));
     --gradient-spendable: linear-gradient(135deg, hsl(var(--spendable)), hsl(var(--spendable-light)));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(180 20% 96%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(217 20% 96%));
 
-    /* Shadows - Teal glow effects */
-    --shadow-glow: 0 0 40px hsl(180 95% 45% / 0.4);
-    --shadow-card: 0 8px 32px -8px hsl(180 95% 45% / 0.2);
+    /* Shadows - Blue glow effects */
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.4);
+    --shadow-card: 0 8px 32px -8px hsl(217 91% 60% / 0.2);
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -103,7 +103,7 @@
     /* Dark mode gradients */
     --gradient-card: linear-gradient(145deg, hsl(200 25% 8%), hsl(200 25% 10%));
 
-    --primary: 180 95% 45%;
+    --primary: 217 91% 60%;
     --primary-foreground: 200 25% 5%;
 
     --secondary: 200 20% 12%;
@@ -120,7 +120,7 @@
 
     --border: 200 20% 18%;
     --input: 200 20% 18%;
-    --ring: 180 95% 45%;
+    --ring: 217 91% 60%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
