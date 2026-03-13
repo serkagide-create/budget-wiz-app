@@ -431,14 +431,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      recalculate_budget_spent_amounts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      revert_transfer: {
-        Args: { p_transfer_id: string }
-        Returns: undefined
-      }
+      recalculate_budget_spent_amounts: { Args: never; Returns: undefined }
+      revert_transfer: { Args: { p_transfer_id: string }; Returns: undefined }
       transfer_funds: {
         Args: {
           p_amount: number
