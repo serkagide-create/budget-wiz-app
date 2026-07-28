@@ -1876,47 +1876,7 @@ const BudgetApp = () => {
           <CardTitle>Bütçe Ayarları</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <Label>Borç Ödeme Oranı: %{settings.debtPercentage}</Label>
-            <Slider
-              value={[settings.debtPercentage]}
-              onValueChange={([value]) => updateSettings({ debtPercentage: value })}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Gelirinizin {formatCurrency((totalIncome * settings.debtPercentage) / 100)} tutarı borç ödemelerine ayrılacak
-            </p>
-          </div>
 
-          <div className="space-y-3">
-            <Label>Birikim Oranı: %{settings.savingsPercentage}</Label>
-            <Slider
-              value={[settings.savingsPercentage]}
-              onValueChange={([value]) => updateSettings({ savingsPercentage: value })}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Gelirinizin {formatCurrency((totalIncome * settings.savingsPercentage) / 100)} tutarı birikimlere ayrılacak
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Yaşam Masrafları Oranı: %{settings.livingExpensesPercentage}</Label>
-            <Slider
-              value={[settings.livingExpensesPercentage]}
-              onValueChange={([value]) => updateSettings({ livingExpensesPercentage: value })}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Gelirinizin {formatCurrency((totalIncome * settings.livingExpensesPercentage) / 100)} tutarı yaşam masraflarına ayrılacak
-            </p>
-          </div>
 
           <div className="space-y-3">
             <Label>Borç Ödeme Stratejisi</Label>
