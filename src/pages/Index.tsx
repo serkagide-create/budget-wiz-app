@@ -197,6 +197,15 @@ const BudgetApp = () => {
     category: '',
     date: new Date().toISOString().split('T')[0]
   });
+  const [receiptScanning, setReceiptScanning] = useState(false);
+  const [receiptResult, setReceiptResult] = useState<null | {
+    merchant?: string;
+    date?: string;
+    category?: string;
+    total?: number;
+    items: Array<{ description: string; quantity?: number; unit_price?: number; total: number; _selected?: boolean }>;
+  }>(null);
+  const receiptFileRef = useRef<HTMLInputElement>(null);
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
   const [savingContributionForms, setSavingContributionForms] = useState<{[key: string]: string}>({});
   const [savingContributionsByGoal, setSavingContributionsByGoal] = useState<Record<string, Array<{id: string; amount: number; date: string; description?: string}>>>({});
@@ -361,6 +370,88 @@ const BudgetApp = () => {
       toast({ title: "Hata", description: "Gider eklenirken hata oluştu", variant: "destructive" });
     }
   };
+
+  const handleReceiptFile = async (file: File) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Dosya çok büyük", description: "Maksimum 15MB", variant: "destructive" });
+      return;
+    }
+    setReceiptScanning(true);
+    setReceiptResult(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { data, error } = await supabase.functions.invoke('scan-receipt', {
+        body: { fileData: base64, mimeType: file.type || 'application/octet-stream', fileName: file.name },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      if (items.length === 0) {
+        toast({ title: "Kalem bulunamadı", description: "Fişte ürün algılanamadı", variant: "destructive" });
+        setReceiptScanning(false);
+        return;
+      }
+      setReceiptResult({
+        merchant: data.merchant,
+        date: data.date,
+        category: data.category || 'shopping',
+        total: data.total,
+        items: items.map((it: any) => ({
+          description: String(it.description || 'Ürün'),
+          quantity: Number(it.quantity) || 1,
+          unit_price: Number(it.unit_price) || 0,
+          total: Number(it.total) || 0,
+          _selected: true,
+        })),
+      });
+      toast({ title: "Fiş algılandı", description: `${items.length} kalem bulundu` });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Hata", description: e.message || "Fiş okunamadı", variant: "destructive" });
+    } finally {
+      setReceiptScanning(false);
+    }
+  };
+
+  const handleImportReceiptItems = async () => {
+    if (!receiptResult) return;
+    const selected = receiptResult.items.filter(i => i._selected !== false);
+    if (selected.length === 0) {
+      toast({ title: "Hata", description: "En az bir kalem seçin", variant: "destructive" });
+      return;
+    }
+    const category = receiptResult.category || 'shopping';
+    const date = receiptResult.date && !isNaN(new Date(receiptResult.date).getTime())
+      ? new Date(receiptResult.date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+    const prefix = receiptResult.merchant ? `${receiptResult.merchant} - ` : '';
+    try {
+      for (const it of selected) {
+        const desc = it.quantity && it.quantity > 1
+          ? `${prefix}${it.quantity} x ${it.description}`
+          : `${prefix}${it.description}`;
+        await addExpense({
+          description: desc,
+          amount: it.total || (it.unit_price || 0) * (it.quantity || 1),
+          category,
+          date,
+        });
+      }
+      toast({ title: "Başarılı", description: `${selected.length} gider eklendi` });
+      setReceiptResult(null);
+      if (receiptFileRef.current) receiptFileRef.current.value = '';
+    } catch (e) {
+      toast({ title: "Hata", description: "Giderler eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+
 
 
   // Load saving contributions for a goal
@@ -1737,9 +1828,116 @@ const BudgetApp = () => {
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Gider Ekle
               </Button>
+
+              {/* Fiş / Fatura Yükleme */}
+              <div className="pt-3 border-t">
+                <input
+                  ref={receiptFileRef}
+                  type="file"
+                  accept="image/*,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleReceiptFile(f);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={receiptScanning}
+                  onClick={() => receiptFileRef.current?.click()}
+                >
+                  <Receipt className="w-4 h-4 mr-2" />
+                  {receiptScanning ? 'Fiş okunuyor...' : 'Fiş / Fatura Yükle (Foto / PDF)'}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Fotoğraf çekin veya PDF/JPG/PNG yükleyin — kalemler otomatik ayrılır
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Fiş Sonuçları */}
+        {receiptResult && (
+          <Card className="border-primary/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                Algılanan Fiş
+                {receiptResult.merchant && (
+                  <Badge variant="secondary" className="ml-1">{receiptResult.merchant}</Badge>
+                )}
+              </CardTitle>
+              {(receiptResult.date || receiptResult.total) && (
+                <p className="text-xs text-muted-foreground">
+                  {receiptResult.date} {receiptResult.total ? `• Toplam: ${formatCurrency(receiptResult.total)}` : ''}
+                </p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {receiptResult.items.map((it, idx) => (
+                  <div key={idx} className="flex items-center gap-2 p-2 rounded-md bg-muted/40">
+                    <input
+                      type="checkbox"
+                      checked={it._selected !== false}
+                      onChange={(e) => {
+                        const items = [...receiptResult.items];
+                        items[idx] = { ...items[idx], _selected: e.target.checked };
+                        setReceiptResult({ ...receiptResult, items });
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{it.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {it.quantity || 1} adet {it.unit_price ? `× ${formatCurrency(it.unit_price)}` : ''}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold whitespace-nowrap">
+                      {formatCurrency(it.total)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Select
+                  value={receiptResult.category || 'shopping'}
+                  onValueChange={(v) => setReceiptResult({ ...receiptResult, category: v })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="food">🍽️ Yemek</SelectItem>
+                    <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
+                    <SelectItem value="utilities">⚡ Faturalar</SelectItem>
+                    <SelectItem value="transport">🚗 Ulaşım</SelectItem>
+                    <SelectItem value="health">🏥 Sağlık</SelectItem>
+                    <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
+                    <SelectItem value="education">📚 Eğitim</SelectItem>
+                    <SelectItem value="children">👶 Çocuk</SelectItem>
+                    <SelectItem value="clothing">👕 Giyim</SelectItem>
+                    <SelectItem value="rent">🏠 Kira</SelectItem>
+                    <SelectItem value="other">📋 Diğer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setReceiptResult(null)}>
+                  İptal
+                </Button>
+                <Button className="flex-1" onClick={handleImportReceiptItems}>
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Giderlere Ekle
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Monthly and Total Expenses Summary */}
         {expenses.length > 0 && (
@@ -1876,47 +2074,7 @@ const BudgetApp = () => {
           <CardTitle>Bütçe Ayarları</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <Label>Borç Ödeme Oranı: %{settings.debtPercentage}</Label>
-            <Slider
-              value={[settings.debtPercentage]}
-              onValueChange={([value]) => updateSettings({ debtPercentage: value })}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Gelirinizin {formatCurrency((totalIncome * settings.debtPercentage) / 100)} tutarı borç ödemelerine ayrılacak
-            </p>
-          </div>
 
-          <div className="space-y-3">
-            <Label>Birikim Oranı: %{settings.savingsPercentage}</Label>
-            <Slider
-              value={[settings.savingsPercentage]}
-              onValueChange={([value]) => updateSettings({ savingsPercentage: value })}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Gelirinizin {formatCurrency((totalIncome * settings.savingsPercentage) / 100)} tutarı birikimlere ayrılacak
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Yaşam Masrafları Oranı: %{settings.livingExpensesPercentage}</Label>
-            <Slider
-              value={[settings.livingExpensesPercentage]}
-              onValueChange={([value]) => updateSettings({ livingExpensesPercentage: value })}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <p className="text-sm text-muted-foreground">
-              Gelirinizin {formatCurrency((totalIncome * settings.livingExpensesPercentage) / 100)} tutarı yaşam masraflarına ayrılacak
-            </p>
-          </div>
 
           <div className="space-y-3">
             <Label>Borç Ödeme Stratejisi</Label>
