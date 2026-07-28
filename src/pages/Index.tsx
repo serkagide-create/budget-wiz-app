@@ -371,6 +371,88 @@ const BudgetApp = () => {
     }
   };
 
+  const handleReceiptFile = async (file: File) => {
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Dosya çok büyük", description: "Maksimum 15MB", variant: "destructive" });
+      return;
+    }
+    setReceiptScanning(true);
+    setReceiptResult(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { data, error } = await supabase.functions.invoke('scan-receipt', {
+        body: { fileData: base64, mimeType: file.type || 'application/octet-stream', fileName: file.name },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      if (items.length === 0) {
+        toast({ title: "Kalem bulunamadı", description: "Fişte ürün algılanamadı", variant: "destructive" });
+        setReceiptScanning(false);
+        return;
+      }
+      setReceiptResult({
+        merchant: data.merchant,
+        date: data.date,
+        category: data.category || 'shopping',
+        total: data.total,
+        items: items.map((it: any) => ({
+          description: String(it.description || 'Ürün'),
+          quantity: Number(it.quantity) || 1,
+          unit_price: Number(it.unit_price) || 0,
+          total: Number(it.total) || 0,
+          _selected: true,
+        })),
+      });
+      toast({ title: "Fiş algılandı", description: `${items.length} kalem bulundu` });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Hata", description: e.message || "Fiş okunamadı", variant: "destructive" });
+    } finally {
+      setReceiptScanning(false);
+    }
+  };
+
+  const handleImportReceiptItems = async () => {
+    if (!receiptResult) return;
+    const selected = receiptResult.items.filter(i => i._selected !== false);
+    if (selected.length === 0) {
+      toast({ title: "Hata", description: "En az bir kalem seçin", variant: "destructive" });
+      return;
+    }
+    const category = receiptResult.category || 'shopping';
+    const date = receiptResult.date && !isNaN(new Date(receiptResult.date).getTime())
+      ? new Date(receiptResult.date).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
+    const prefix = receiptResult.merchant ? `${receiptResult.merchant} - ` : '';
+    try {
+      for (const it of selected) {
+        const desc = it.quantity && it.quantity > 1
+          ? `${prefix}${it.quantity} x ${it.description}`
+          : `${prefix}${it.description}`;
+        await addExpense({
+          description: desc,
+          amount: it.total || (it.unit_price || 0) * (it.quantity || 1),
+          category,
+          date,
+        });
+      }
+      toast({ title: "Başarılı", description: `${selected.length} gider eklendi` });
+      setReceiptResult(null);
+      if (receiptFileRef.current) receiptFileRef.current.value = '';
+    } catch (e) {
+      toast({ title: "Hata", description: "Giderler eklenirken hata oluştu", variant: "destructive" });
+    }
+  };
+
+
+
 
   // Load saving contributions for a goal
   const loadSavingContributions = async (goalId: string) => {
