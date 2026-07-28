@@ -57,8 +57,18 @@ import {
   Receipt,
   Edit,
   ArrowLeftRight,
-  BarChart3
+  BarChart3,
+  Menu,
+  MessageCircle,
+  Send,
+  UserCircle
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import brandLogo from '@/assets/borc-yok-logo-1.png';
 
@@ -154,7 +164,7 @@ const BudgetApp = () => {
     }
   }, [user, loading, navigate]);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'expenses' | 'reports' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'incomes' | 'debts' | 'saving-goals' | 'transfers' | 'expenses' | 'reports' | 'settings' | 'personal' | 'chat'>('dashboard');
   const hasShownSyncToastRef = useRef(false);
 
 
