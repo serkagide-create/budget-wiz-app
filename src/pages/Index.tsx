@@ -2004,6 +2004,26 @@ const BudgetApp = () => {
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                    aria-label="Menü"
+                  >
+                    <Menu className="w-6 h-6" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
+                  <DropdownMenuItem onClick={() => setActiveTab('reports')}>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Raporlar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab('personal')}>
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    Kişisel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="bg-primary p-2 rounded-lg">
                 <span className="material-icons text-white text-2xl">savings</span>
               </div>
@@ -2039,18 +2059,8 @@ const BudgetApp = () => {
               savingContributionsByGoal={savingContributionsByGoal}
             />
           )}
-          {activeTab === 'transfers' && (
-            <FundTransfer 
-              settings={settings} 
-              transfers={transfers}
-              availableDebtFund={availableDebtFund}
-              availableSavingsFund={availableSavingsFund}
-              availableLivingExpensesFund={availableLivingExpensesFund}
-              onTransfer={transferFunds}
-              onDeleteTransfer={deleteTransfer}
-            />
-          )}
-          
+          {activeTab === 'personal' && renderPersonal()}
+          {activeTab === 'chat' && renderChat()}
           {activeTab === 'settings' && renderSettings()}
         </div>
       </div>
@@ -2105,22 +2115,13 @@ const BudgetApp = () => {
               <span className="block text-xs">Giderler</span>
             </button>
             <button
-              onClick={() => setActiveTab('transfers')}
+              onClick={() => setActiveTab('chat')}
               className={`text-center ${
-                activeTab === 'transfers' ? 'text-primary' : 'text-muted-foreground'
+                activeTab === 'chat' ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <span className="material-icons">swap_horiz</span>
-              <span className="block text-xs">Transfer</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`text-center ${
-                activeTab === 'reports' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <span className="material-icons">assessment</span>
-              <span className="block text-xs">Raporlar</span>
+              <MessageCircle className="w-6 h-6 mx-auto" />
+              <span className="block text-xs">Sohbet</span>
             </button>
           </nav>
         </div>
