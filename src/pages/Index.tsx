@@ -1988,6 +1988,128 @@ const BudgetApp = () => {
     </div>
   );
 
+  const renderPersonal = () => (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCircle className="w-5 h-5" />
+            Kişisel Bilgiler
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-sm text-muted-foreground">E-posta</Label>
+            <p className="font-medium">{user?.email}</p>
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Kullanıcı ID</Label>
+            <p className="font-mono text-xs break-all">{user?.id}</p>
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Kayıt Tarihi</Label>
+            <p className="font-medium">{user?.created_at ? formatDate(user.created_at) : '-'}</p>
+          </div>
+          <Button variant="outline" onClick={signOut} className="w-full">
+            <LogOut className="w-4 h-4 mr-2" />
+            Çıkış Yap
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Finansal Özet</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between"><span>Toplam Gelir Kaydı</span><span className="font-semibold">{incomes.length}</span></div>
+          <div className="flex justify-between"><span>Toplam Borç Kaydı</span><span className="font-semibold">{debts.length}</span></div>
+          <div className="flex justify-between"><span>Birikim Hedefi</span><span className="font-semibold">{savingGoals.length}</span></div>
+          <div className="flex justify-between"><span>Gider Kaydı</span><span className="font-semibold">{expenses.length}</span></div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const handleSendChat = async () => {
+    const text = chatInput.trim();
+    if (!text || isProcessing) return;
+    const userMsg = { id: `u-${Date.now()}`, type: 'user' as const, message: text, timestamp: new Date() };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInput('');
+    setIsProcessing(true);
+    try {
+      const history = [...chatMessages, userMsg].map(m => ({
+        role: m.type === 'user' ? 'user' : 'assistant',
+        content: m.message,
+      }));
+      const { data, error } = await supabase.functions.invoke('chat', { body: { messages: history } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setChatMessages(prev => [...prev, {
+        id: `a-${Date.now()}`,
+        type: 'assistant',
+        message: data.message || '...',
+        timestamp: new Date(),
+      }]);
+    } catch (e: any) {
+      toast({ title: 'Hata', description: e.message || 'Sohbet başarısız', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const renderChat = () => (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5" />
+            Finansal Asistan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[50vh] overflow-y-auto space-y-3 mb-3 pr-1">
+            {chatMessages.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                Merhaba! Bütçen, borçların veya birikim hedeflerin hakkında sorular sorabilirsin.
+              </p>
+            )}
+            {chatMessages.map(m => (
+              <div key={m.id} className={`flex ${m.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
+                  m.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                }`}>
+                  <p className="whitespace-pre-wrap">{m.message}</p>
+                  <p className="text-[10px] opacity-60 mt-1">{formatMsgTime(m.timestamp)}</p>
+                </div>
+              </div>
+            ))}
+            {isProcessing && (
+              <div className="flex justify-start">
+                <div className="bg-muted px-3 py-2 rounded-2xl text-sm">Yazıyor...</div>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSendChat(); }}
+              placeholder="Bir mesaj yaz..."
+              disabled={isProcessing}
+            />
+            <Button onClick={handleSendChat} disabled={isProcessing || !chatInput.trim()}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+
+
   if (loading || dataLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
