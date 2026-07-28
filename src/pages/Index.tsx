@@ -197,6 +197,15 @@ const BudgetApp = () => {
     category: '',
     date: new Date().toISOString().split('T')[0]
   });
+  const [receiptScanning, setReceiptScanning] = useState(false);
+  const [receiptResult, setReceiptResult] = useState<null | {
+    merchant?: string;
+    date?: string;
+    category?: string;
+    total?: number;
+    items: Array<{ description: string; quantity?: number; unit_price?: number; total: number; _selected?: boolean }>;
+  }>(null);
+  const receiptFileRef = useRef<HTMLInputElement>(null);
   const [paymentForms, setPaymentForms] = useState<{[key: string]: string}>({});
   const [savingContributionForms, setSavingContributionForms] = useState<{[key: string]: string}>({});
   const [savingContributionsByGoal, setSavingContributionsByGoal] = useState<Record<string, Array<{id: string; amount: number; date: string; description?: string}>>>({});
