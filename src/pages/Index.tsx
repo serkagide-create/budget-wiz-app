@@ -1828,9 +1828,116 @@ const BudgetApp = () => {
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Gider Ekle
               </Button>
+
+              {/* Fiş / Fatura Yükleme */}
+              <div className="pt-3 border-t">
+                <input
+                  ref={receiptFileRef}
+                  type="file"
+                  accept="image/*,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleReceiptFile(f);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={receiptScanning}
+                  onClick={() => receiptFileRef.current?.click()}
+                >
+                  <Receipt className="w-4 h-4 mr-2" />
+                  {receiptScanning ? 'Fiş okunuyor...' : 'Fiş / Fatura Yükle (Foto / PDF)'}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Fotoğraf çekin veya PDF/JPG/PNG yükleyin — kalemler otomatik ayrılır
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Fiş Sonuçları */}
+        {receiptResult && (
+          <Card className="border-primary/40">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                Algılanan Fiş
+                {receiptResult.merchant && (
+                  <Badge variant="secondary" className="ml-1">{receiptResult.merchant}</Badge>
+                )}
+              </CardTitle>
+              {(receiptResult.date || receiptResult.total) && (
+                <p className="text-xs text-muted-foreground">
+                  {receiptResult.date} {receiptResult.total ? `• Toplam: ${formatCurrency(receiptResult.total)}` : ''}
+                </p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 max-h-72 overflow-y-auto">
+                {receiptResult.items.map((it, idx) => (
+                  <div key={idx} className="flex items-center gap-2 p-2 rounded-md bg-muted/40">
+                    <input
+                      type="checkbox"
+                      checked={it._selected !== false}
+                      onChange={(e) => {
+                        const items = [...receiptResult.items];
+                        items[idx] = { ...items[idx], _selected: e.target.checked };
+                        setReceiptResult({ ...receiptResult, items });
+                      }}
+                      className="w-4 h-4"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{it.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {it.quantity || 1} adet {it.unit_price ? `× ${formatCurrency(it.unit_price)}` : ''}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold whitespace-nowrap">
+                      {formatCurrency(it.total)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Select
+                  value={receiptResult.category || 'shopping'}
+                  onValueChange={(v) => setReceiptResult({ ...receiptResult, category: v })}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="food">🍽️ Yemek</SelectItem>
+                    <SelectItem value="shopping">🛒 Alışveriş</SelectItem>
+                    <SelectItem value="utilities">⚡ Faturalar</SelectItem>
+                    <SelectItem value="transport">🚗 Ulaşım</SelectItem>
+                    <SelectItem value="health">🏥 Sağlık</SelectItem>
+                    <SelectItem value="entertainment">🎬 Eğlence</SelectItem>
+                    <SelectItem value="education">📚 Eğitim</SelectItem>
+                    <SelectItem value="children">👶 Çocuk</SelectItem>
+                    <SelectItem value="clothing">👕 Giyim</SelectItem>
+                    <SelectItem value="rent">🏠 Kira</SelectItem>
+                    <SelectItem value="other">📋 Diğer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setReceiptResult(null)}>
+                  İptal
+                </Button>
+                <Button className="flex-1" onClick={handleImportReceiptItems}>
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Giderlere Ekle
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Monthly and Total Expenses Summary */}
         {expenses.length > 0 && (
